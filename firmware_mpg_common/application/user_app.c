@@ -35,7 +35,7 @@ Runs current task state.  Should only be called once in main loop.
 **********************************************************************************************************************/
 
 #include "configuration.h"
-
+//#define COLOR_CYCLE_TIME   (u16)60    /* Time to hold each color */
 /***********************************************************************************************************************
 Global variable definitions with scope across entire project.
 All Global variable names shall start with "G_"
@@ -88,6 +88,19 @@ Promises:
 */
 void UserAppInitialize(void)
 {
+  LedOff(WHITE);
+  LedOff(PURPLE);
+  LedOff(BLUE);
+  LedOff(CYAN);
+  LedOff(GREEN);
+  LedOff(YELLOW);
+  LedOff(ORANGE);
+  LedOff(RED);
+  
+  /* Backlight to white */  
+  LedOn(LCD_RED);
+  LedOn(LCD_GREEN);
+  LedOn(LCD_BLUE);
   
   /* If good initialization, set state to Idle */
   if( 1 )
@@ -137,7 +150,79 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-    
+  #ifdef MPG1
+  static LedNumberType aeCurrentLed[]  = {WHITE, PURPLE, BLUE, CYAN, GREEN, YELLOW, ORANGE, RED};
+//  static u16 u16Counter = COLOR_CYCLE_TIME;
+  
+  static u8 u8ColorIndex = 0;
+  static u16 u16BlinkCount = 0;
+  static u8 u8Counter = 0;
+  
+  u16BlinkCount++;
+  if(u16BlinkCount == 500)
+  {
+    u16BlinkCount = 0;
+
+    /* Update the counter and roll at 16 */
+    u8Counter++;
+    if(u8Counter == 16)
+    {
+      u8Counter = 0;
+      
+      /* Manage the back light color */
+      u8ColorIndex++;
+      if(u8ColorIndex == 7)
+      {
+        u8ColorIndex = 0;
+      }
+
+  
+  u16Counter--;
+  /* Check for update color every COLOR_CYCLE_TIME ms */  
+  if(u16Counter == 0)
+  {
+    u16Counter = COLOR_CYCLE_TIME;
+    /* Update the current level based on which way it's headed */
+      switch(u8ColorIndex)
+      {
+        case 0: /* white */
+          LedOn(WHITH);
+          break;
+
+        case 1: /* purple */
+          LedOn(PURPLE);
+          break;
+          
+        case 2: /* blue */
+          LedOn(BLUE);
+          break;
+          
+        case 3: /* cyan */
+          LedOn(CYAN);
+          break;
+          
+        case 4: /* green */
+          LedOn(GREEN);
+          break;
+          
+        case 5: /* yellow */
+          LedOn(YELLOW);
+          break;
+          
+        case 6: /* orange */
+          LedOn(ORANGE);
+          break;
+          
+        case 7: /* red */
+          LedOn(LCD_RED);
+          break;
+      } /* end switch */
+
+    /* Update the value to the current LED */   
+   // LedPWM( (LedNumberType)aeCurrentLed[u8CurrentLedIndex], (LedRateType)u8LedCurrentLevel);
+  } 
+
+  
 } /* end UserAppSM_Idle() */
      
 
