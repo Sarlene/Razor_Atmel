@@ -150,79 +150,44 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-  #ifdef MPG1
-  static LedNumberType aeCurrentLed[]  = {WHITE, PURPLE, BLUE, CYAN, GREEN, YELLOW, ORANGE, RED};
-//  static u16 u16Counter = COLOR_CYCLE_TIME;
-  
-  static u8 u8ColorIndex = 0;
-  static u16 u16BlinkCount = 0;
-  static u8 u8Counter = 0;
-  
-  u16BlinkCount++;
-  if(u16BlinkCount == 500)
+  bool bYellowBlink = FALSE;
+  if( IsButtonPressed(BUTTON0) )
   {
-    u16BlinkCount = 0;
+  /* The button is currently pressed, so make sure the LED is on */
+    LedOn(WHITE);
+  }
+  else
+  {
+    /* The button is not pressed, so make sure the LED is off */
+    LedOff(WHITE);
+  }
+  if( WasButtonPressed(BUTTON1) )
+  {
+    /* Be sure to acknowledge the button press */
+    ButtonAcknowledge(BUTTON1);
 
-    /* Update the counter and roll at 16 */
-    u8Counter++;
-    if(u8Counter == 16)
+    /* If the LED is already blinking, toggle it off */
+    if(bYellowBlink)
     {
-      u8Counter = 0;
-      
-      /* Manage the back light color */
-      u8ColorIndex++;
-      if(u8ColorIndex == 7)
-      {
-        u8ColorIndex = 0;
-      }
-
-  
-  u16Counter--;
-  /* Check for update color every COLOR_CYCLE_TIME ms */  
-  if(u16Counter == 0)
+      bYellowBlink = FALSE;
+      LedOff(YELLOW);
+    }
+    else
+    {
+     /* start blinking the LED at the current rate */
+      bYellowBlink = TRUE;
+      LedBlink(YELLOW, LED_1HZ);
+    }
+  }
+  if( IsButtonHeld(BUTTON3, 2000) )
   {
-    u16Counter = COLOR_CYCLE_TIME;
-    /* Update the current level based on which way it's headed */
-      switch(u8ColorIndex)
-      {
-        case 0: /* white */
-          LedOn(WHITH);
-          break;
-
-        case 1: /* purple */
-          LedOn(PURPLE);
-          break;
-          
-        case 2: /* blue */
-          LedOn(BLUE);
-          break;
-          
-        case 3: /* cyan */
-          LedOn(CYAN);
-          break;
-          
-        case 4: /* green */
-          LedOn(GREEN);
-          break;
-          
-        case 5: /* yellow */
-          LedOn(YELLOW);
-          break;
-          
-        case 6: /* orange */
-          LedOn(ORANGE);
-          break;
-          
-        case 7: /* red */
-          LedOn(LCD_RED);
-          break;
-      } /* end switch */
-
-    /* Update the value to the current LED */   
-   // LedPWM( (LedNumberType)aeCurrentLed[u8CurrentLedIndex], (LedRateType)u8LedCurrentLevel);
-  } 
-
-  
+    LedOn(CYAN);
+  }
+  else
+  {
+    LedOff(CYAN);
+  }
+   
 } /* end UserAppSM_Idle() */
      
 
