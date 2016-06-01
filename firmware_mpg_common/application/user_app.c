@@ -154,7 +154,7 @@ static void UserAppSM_Idle(void)
   
   static u8 u8ColorIndex = 0;
   static u16 u16BlinkCount = 0;
-  static u8 u8Counter = 0;
+//  static u8 u8Counter = 0;
   
   u16BlinkCount++;
   if(u16BlinkCount == 200)
@@ -162,14 +162,10 @@ static void UserAppSM_Idle(void)
     u16BlinkCount = 0;
 
    
-      /* Manage the back light color */
-    u8ColorIndex++;
-    if(u8ColorIndex == 8)
-    {
-      u8ColorIndex = 0;
-    }
+    /* Manage the back light color */
+
     switch(u8ColorIndex)
-      {
+    {
         case 0: /* white */
           LedOn(WHITE);
           LedOff(PURPLE);
@@ -256,7 +252,7 @@ static void UserAppSM_Idle(void)
           
         case 6: /* orange */
           LedOn(ORANGE);
-          LedOn(WHITE);
+          LedOff(WHITE);
           LedOff(PURPLE);
           LedOff(BLUE);
           LedOff(CYAN);
@@ -281,8 +277,12 @@ static void UserAppSM_Idle(void)
           LedOff(LCD_BLUE);
           LedOn(LCD_RED);
           break;
-      } /* end switch */
-
+    } /* end switch */
+    u8ColorIndex++;
+    if(u8ColorIndex == 8)
+    {
+      u8ColorIndex = 0;
+    }
     /* Update the value to the current LED */   
    // LedPWM( (LedNumberType)aeCurrentLed[u8CurrentLedIndex], (LedRateType)u8LedCurrentLevel);
   } 
