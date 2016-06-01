@@ -88,7 +88,21 @@ Promises:
 */
 void UserAppInitialize(void)
 {
+    /* All discrete LEDs to off */
+  LedOff(WHITE);
+  LedOff(PURPLE);
+  LedOff(BLUE);
+  LedOff(CYAN);
+  LedOff(GREEN);
+  LedOff(YELLOW);
+  LedOff(ORANGE);
+  LedOff(RED);
   
+  /* Backlight to white */  
+  LedOn(LCD_RED);
+  LedOn(LCD_GREEN);
+  LedOn(LCD_BLUE);
+
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -137,7 +151,68 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-    
+  static LedRateType aeBlinkRate[] = {LED_1HZ, LED_2HZ, LED_4HZ, LED_8HZ};
+  static u8 u8BlinkRateIndex = 0;
+  static bool bLedBlink = FALSE;
+
+  if( IsButtonPressed(BUTTON0) )
+  {
+    /* The button is currently pressed, so make sure the LED is on */
+    LedOn(PURPLE);
+  }
+  else
+  {
+    /* The button is not pressed, so make sure the LED is off */
+    LedOff(PURPLE);
+  }
+  
+  if( IsButtonPressed(BUTTON1) )
+  {
+    /* The button is currently pressed, so make sure the LED is on */
+    LedOn(BLUE);
+  }
+  else
+  {
+    /* The button is not pressed, so make sure the LED is off */
+    LedOff(BLUE);
+  }
+  if( WasButtonPressed(BUTTON1) )
+  {
+    /* Be sure to acknowledge the button press */
+    ButtonAcknowledge(BUTTON1);
+
+    /* If the LED is already blinking, toggle it off */
+    if(bLedBlink)
+    {
+      bLedBlink = FALSE;
+      LedOff(YELLOW);
+    }
+    /* else start blinking the LED at the current rate */
+    else
+    {
+      bLedBlink = TRUE;
+      LedBlink(YELLOW, aeBlinkRate[u8BlinkRateIndex]);
+    }
+  }
+  if( WasButtonPressed(BUTTON2) )
+  {
+    /* Be sure to acknowledge the button press */
+    ButtonAcknowledge(BUTTON2);
+
+    /* Update the blink rate and handle overflow only if the LED is currently blinking */
+    if(bLedBlink)
+    {
+      u8BlinkRateIndex++;
+      if(u8BlinkRateIndex == 4)
+      {
+        u8BlinkRateIndex = 3;
+      }
+      
+      /* Request the rate udpate */
+      LedBlink(YELLOW, aeBlinkRate[u8BlinkRateIndex]);
+    }
+  }
+  
 } /* end UserAppSM_Idle() */
      
 
