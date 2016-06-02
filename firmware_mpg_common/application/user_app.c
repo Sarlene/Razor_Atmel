@@ -88,7 +88,8 @@ Promises:
 */
 void UserAppInitialize(void)
 {
-  
+  PWMAudioSetFrequency(BUZZER1, 500);
+
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -137,7 +138,71 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
+  bool bflag = FALSE;
+  if(WasButtonPressed(BUTTON0))
+  {
+    ButtonAcknowledge(BUTTON0);
+    PWMAudioSetFrequency(BUZZER1, 523);
+  }
+  
+  if(IsButtonPressed(BUTTON0))
+  {
+    PWMAudioOn(BUZZER1);
+  }
+  if(WasButtonPressed(BUTTON1))
+  {
+    ButtonAcknowledge(BUTTON1);
+    PWMAudioSetFrequency(BUZZER1, 587);
+  }
+   if(IsButtonPressed(BUTTON1))
+  {
+    PWMAudioOn(BUZZER1);
+  }
+    if(WasButtonPressed(BUTTON2))
+  {
+    ButtonAcknowledge(BUTTON2);
+    PWMAudioSetFrequency(BUZZER1, 659);
+  }
+   if(IsButtonPressed(BUTTON2))
+  {
+    PWMAudioOn(BUZZER1);
+  }
+  if(WasButtonPressed(BUTTON3))
+  {
+    ButtonAcknowledge(BUTTON3);
+    PWMAudioSetFrequency(BUZZER1, 698);
+  }
+   if(IsButtonPressed(BUTTON3))
+  {
+    PWMAudioOn(BUZZER1);
+  }
     
+  if(IsButtonPressed(BUTTON0)&IsButtonPressed(BUTTON1))
+  {
+    bflag = TRUE;
+  }
+  else
+  {
+    bflag = FALSE;
+  }
+  if(bflag)
+  {
+    PWMAudioSetFrequency(BUZZER1, 784);
+    bflag = FALSE;
+  }
+
+  /* Tone is on as long as button is pressed */
+  if( IsButtonPressed(BUTTON0) || IsButtonPressed(BUTTON1) ||
+      IsButtonPressed(BUTTON2) || IsButtonPressed(BUTTON3) )
+  {
+    PWMAudioOn(BUZZER1);
+  }
+  else
+  {
+    PWMAudioOff(BUZZER1);    
+  }
+
+
 } /* end UserAppSM_Idle() */
      
 
