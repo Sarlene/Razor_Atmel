@@ -155,7 +155,7 @@ static void UserAppSM_Idle(void)
   static u8 u8BlinkRateIndex = 0;
   static bool bLedBlink = FALSE;
 
-  if( IsButtonPressed(BUTTON0) )
+  if( IsButtonPressed(BUTTON1) )
   {
     /* The button is currently pressed, so make sure the LED is on */
     LedOn(PURPLE);
@@ -166,7 +166,7 @@ static void UserAppSM_Idle(void)
     LedOff(PURPLE);
   }
   
-  if( IsButtonPressed(BUTTON1) )
+  if( IsButtonPressed(BUTTON2) )
   {
     /* The button is currently pressed, so make sure the LED is on */
     LedOn(BLUE);
@@ -176,10 +176,10 @@ static void UserAppSM_Idle(void)
     /* The button is not pressed, so make sure the LED is off */
     LedOff(BLUE);
   }
-  if( WasButtonPressed(BUTTON1) )
+  if( WasButtonPressed(BUTTON2) )
   {
     /* Be sure to acknowledge the button press */
-    ButtonAcknowledge(BUTTON1);
+    ButtonAcknowledge(BUTTON2);
 
     /* If the LED is already blinking, toggle it off */
     if(bLedBlink)
@@ -194,10 +194,10 @@ static void UserAppSM_Idle(void)
       LedBlink(YELLOW, aeBlinkRate[u8BlinkRateIndex]);
     }
   }
-  if( WasButtonPressed(BUTTON2) )
+  if( WasButtonPressed(BUTTON3) )
   {
     /* Be sure to acknowledge the button press */
-    ButtonAcknowledge(BUTTON2);
+    ButtonAcknowledge(BUTTON3);
 
     /* Update the blink rate and handle overflow only if the LED is currently blinking */
     if(bLedBlink)
