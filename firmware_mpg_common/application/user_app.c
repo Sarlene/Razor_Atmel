@@ -60,6 +60,8 @@ Variable names shall start with "UserApp_" and be declared as static.
 static fnCode_type UserApp_StateMachine;            /* The state machine function pointer */
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
+static u8 UserApp_au8MyName[] = "SuXiuLing";     
+static u8 UserApp_CursorPosition;
 
 /**********************************************************************************************************************
 Function Definitions
@@ -88,7 +90,18 @@ Promises:
 */
 void UserAppInitialize(void)
 {
-  
+  u8 au8Message[] = "Hello world!";
+  LCDMessage(LINE1_START_ADDR, au8Message);
+  LCDClearChars(LINE1_START_ADDR + 13, 3);
+  LCDCommand(LCD_CLEAR_CMD);
+ 
+  /* Write name and button labels */
+  LCDMessage(LINE1_START_ADDR, UserApp_au8MyName);
+
+  /* Home the cursor */
+  LCDCommand(LCD_HOME_CMD);
+  UserApp_CursorPosition = LINE1_START_ADDR;
+
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -99,6 +112,7 @@ void UserAppInitialize(void)
     /* The task isn't properly initialized, so shut it down and don't run */
     UserApp_StateMachine = UserAppSM_FailedInit;
   }
+
 
 } /* end UserAppInitialize() */
 
@@ -137,7 +151,23 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-    
+  static u8 i=0;
+
+  while(WasButtonPressed(BUTTON0))
+  {
+    i++;
+    ButtonAcknowledge(BUTTON0);
+    LCDMessage(UserApp_CursorPosition+i-1," ");
+    LCDMessage(UserApp_CursorPosition+i, UserApp_au8MyName);    
+  }
+  while(WasButtonPressed(BUTTON1))
+  {
+    i--;
+    ButtonAcknowledge(BUTTON1);
+    LCDMessage(UserApp_CursorPosition+i+9," ");
+    LCDMessage(UserApp_CursorPosition+i, UserApp_au8MyName);    
+  }
+  
 } /* end UserAppSM_Idle() */
      
 
