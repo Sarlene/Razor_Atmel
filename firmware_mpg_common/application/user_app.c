@@ -152,22 +152,34 @@ State Machine Function Definitions
 static void UserAppSM_Idle(void)
 {
   static u8 i=0;
-
-  while(WasButtonPressed(BUTTON0))
-  {
-    i++;
-    ButtonAcknowledge(BUTTON0);
-    LCDMessage(UserApp_CursorPosition+i-1," ");
-    LCDMessage(UserApp_CursorPosition+i, UserApp_au8MyName);    
-  }
-  while(WasButtonPressed(BUTTON1))
-  {
-    i--;
-    ButtonAcknowledge(BUTTON1);
-    LCDMessage(UserApp_CursorPosition+i+9," ");
-    LCDMessage(UserApp_CursorPosition+i, UserApp_au8MyName);    
-  }
+  static u8 u8Count=0;
+  static u8 u8Index=40;
+  static u16 u16BlinkCount=0;
   
+  u16BlinkCount++;
+  
+  if(u16BlinkCount==200)
+  {
+    u16BlinkCount=0;
+    u8Count++;
+    if(u8Count<40)
+    {  
+      i++;
+      LCDMessage(UserApp_CursorPosition+i-1," ");
+      LCDMessage(UserApp_CursorPosition+i, UserApp_au8MyName);
+      u8Count++;
+    }
+
+    else if((u8Index=40)|(u8Count==40))
+    {
+        i--;
+        u8Count--;
+        LCDMessage(UserApp_CursorPosition+i+9," ");
+        LCDMessage(UserApp_CursorPosition+i, UserApp_au8MyName);
+    }
+
+  }
+
 } /* end UserAppSM_Idle() */
      
 
