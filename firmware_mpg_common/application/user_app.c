@@ -63,7 +63,9 @@ static fnCode_type UserApp_StateMachine;            /* The state machine functio
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
 static u8 UserApp_au8MyName[] = "A3.SuXiuLing";
-
+static u8 MyName[]="suxiuling";
+static u8 MyName1[]="SUXIULING";
+static u8 MyNameBuffer[200];
 static u8 UserApp_au8UserInputBuffer[USER_INPUT_BUFFER_SIZE]; 
 /**********************************************************************************************************************
 Function Definitions
@@ -97,12 +99,12 @@ void UserAppInitialize(void)
   LedOn(LCD_RED);
   LedOn(LCD_BLUE);
   LedOff(LCD_GREEN);
-/*  
+  
   for(u8 i = 0; i < USER_INPUT_BUFFER_SIZE; i++)
   {
     UserApp_au8UserInputBuffer[i] = 0;
   }
-*/
+
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -155,7 +157,10 @@ static void UserAppSM_Idle(void)
   static u16 u16CharCount=0;
   static u8 u8CharCount=0;
   static u8 u8CharIndex=0;
-  static u8 u8Message[]="\n\rCharacter count cleared!\n\r"; 
+  static u8 u8Message[]="\n\rCharacter count cleared!\n\r";
+  static u8 u8i=0;
+  static u8 u8j=0;
+  static u8 u8k=0;
   bool flag=FALSE;
   u16BlinkCount++;
   if(u16BlinkCount==10)
@@ -169,20 +174,20 @@ static void UserAppSM_Idle(void)
     UserApp_au8UserInputBuffer[u8CharCount] = '\0';
     if(u8CharCount!=0)
     {
-     for(u8 i=0;i<u8CharCount;i++)
-     {
-       LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer); 
-       u8CharIndex++;
-       u16CharCount++;
-     }
-     if(u8CharIndex==21)
-     {
-       LCDClearChars(LINE2_START_ADDR,20); 
-       LCDMessage(LINE2_START_ADDR, UserApp_au8UserInputBuffer); 
-       u8CharIndex=1;
-     }
+       for(u8 i=0;i<u8CharCount;i++)
+       {
+         LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer); 
+         u8CharIndex++;
+         u16CharCount++; 
+       }
+       if(u8CharIndex==21)
+       {
+         LCDClearChars(LINE2_START_ADDR,20); 
+         LCDMessage(LINE2_START_ADDR, UserApp_au8UserInputBuffer); 
+         u8CharIndex=1;
+       }
     }
-    flag=FALSE;    
+    flag=FALSE;
   }
   if( WasButtonPressed(BUTTON0) )
   {
@@ -201,7 +206,22 @@ static void UserAppSM_Idle(void)
     ButtonAcknowledge(BUTTON2);
     u16CharCount=0;
     DebugPrintf(u8Message);
-  }    
+  }
+  if( WasButtonPressed(BUTTON3) )
+  {
+    ButtonAcknowledge(BUTTON3);
+    DebugPrintf(MyNameBuffer);
+  }
+
+  if((UserApp_au8UserInputBuffer[u8j]==MyName[u8i])||(UserApp_au8UserInputBuffer[u8j]==MyName1[u8i]))
+  {
+    MyNameBuffer[u8k++]=UserApp_au8UserInputBuffer[u8j];
+    u8i++;
+    if(u8i==9)
+    {
+      u8i=0;
+    }
+  }
 } /* end UserAppSM_Idle() */
      
 
