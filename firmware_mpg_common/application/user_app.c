@@ -188,7 +188,14 @@ static void UserAppSM_Idle(void)
     ButtonAcknowledge(BUTTON0);
     LCDClearChars(LINE2_START_ADDR,20);
     u8CharIndex=0;
+  } 
+  if( WasButtonPressed(BUTTON1) )
+  {
+    ButtonAcknowledge(BUTTON1);
+    DebugPrintf(" ");
+    DebugPrintNumber(u16CharCount);
   }  
+
 } /* end UserAppSM_Idle() */
      
 
