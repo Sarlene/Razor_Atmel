@@ -179,9 +179,15 @@ static void UserAppSM_Idle(void)
        LCDClearChars(LINE2_START_ADDR,20); 
        LCDMessage(LINE2_START_ADDR, UserApp_au8UserInputBuffer); 
        u8CharIndex=1;
-     }           
+     }
     }
     flag=FALSE;    
+  }
+  if( WasButtonPressed(BUTTON0) )
+  {
+    ButtonAcknowledge(BUTTON0);
+    LCDClearChars(LINE2_START_ADDR,20);
+    u8CharIndex=0;
   }  
 } /* end UserAppSM_Idle() */
      
