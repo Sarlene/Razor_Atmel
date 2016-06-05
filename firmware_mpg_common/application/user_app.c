@@ -154,7 +154,8 @@ static void UserAppSM_Idle(void)
   static u16 u16BlinkCount=0;
   static u16 u16CharCount=0;
   static u8 u8CharCount=0;
-  static u8 u8CharIndex=0;  
+  static u8 u8CharIndex=0;
+  static u8 u8Message[]="\n\rCharacter count cleared!\n\r"; 
   bool flag=FALSE;
   u16BlinkCount++;
   if(u16BlinkCount==10)
@@ -195,7 +196,12 @@ static void UserAppSM_Idle(void)
     DebugPrintf(" ");
     DebugPrintNumber(u16CharCount);
   }  
-
+  if( WasButtonPressed(BUTTON2) )
+  {
+    ButtonAcknowledge(BUTTON2);
+    u16CharCount=0;
+    DebugPrintf(u8Message);
+  }    
 } /* end UserAppSM_Idle() */
      
 
