@@ -90,7 +90,9 @@ void UserAppInitialize(void)
 {
   LCDMessage(LINE1_START_ADDR, UserApp_au8MyName);
   LCDClearChars(LINE1_START_ADDR + 13, 5);
-
+  LedOn(LCD_RED);
+  LedOn(LCD_BLUE);
+  LedOff(LCD_GREEN);
   /* If good initialization, set state to Idle */
   if( 1 )
   {
