@@ -52,6 +52,8 @@ extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 
+extern u8 G_au8DebugScanfBuffer[];                     /* From debug.c */
+extern u8 G_u8DebugScanfCharCount;                     /* From debug.c  */
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
@@ -60,7 +62,9 @@ Variable names shall start with "UserApp_" and be declared as static.
 static fnCode_type UserApp_StateMachine;            /* The state machine function pointer */
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
-static u8 UserApp_au8MyName[] = "A3.SuXiuLing";     
+static u8 UserApp_au8MyName[] = "A3.SuXiuLing";
+
+static u8 UserApp_au8UserInputBuffer[USER_INPUT_BUFFER_SIZE]; 
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -93,6 +97,12 @@ void UserAppInitialize(void)
   LedOn(LCD_RED);
   LedOn(LCD_BLUE);
   LedOff(LCD_GREEN);
+/*  
+  for(u8 i = 0; i < USER_INPUT_BUFFER_SIZE; i++)
+  {
+    UserApp_au8UserInputBuffer[i] = 0;
+  }
+*/
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -141,7 +151,30 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-    
+  static u16 u16BlinkCount=0;
+  static u8 u8CharCount=0;
+  static u8 u8CharIndex=0;  
+   bool flag=FALSE;
+  u16BlinkCount++;
+  if(u16BlinkCount==10)
+  {
+    u16BlinkCount=0;
+    flag=TRUE;
+  }
+  if(flag==TRUE)
+  {
+    u8CharCount = DebugScanf(UserApp_au8UserInputBuffer);
+    UserApp_au8UserInputBuffer[u8CharCount] = '\0';
+    if(u8CharCount!=0)
+    {
+     for(u8 i=0;i<u8CharCount;i++)
+     {
+       LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer);
+       u8CharIndex++;
+     }
+    }
+    flag=FALSE;    
+  }  
 } /* end UserAppSM_Idle() */
      
 

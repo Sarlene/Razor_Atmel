@@ -20,6 +20,8 @@ Header file for yournewtaskname.c
 #ifndef __USER_APP_H
 #define __USER_APP_H
 
+#define USER_INPUT_BUFFER_SIZE  (u16)(DEBUG_SCANF_BUFFER_SIZE + 1)    /* Size of buffer for scanf messages */
+
 /**********************************************************************************************************************
 Type Definitions
 **********************************************************************************************************************/
