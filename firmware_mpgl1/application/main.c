@@ -68,6 +68,8 @@ void main(void)
 
   /* Application initialization */
     UserAppInitialize();
+    /* Application initialization */
+    MyUserAppInitialize();
   
   /* Exit initialization */
   SystemStatusReport();
@@ -92,6 +94,8 @@ void main(void)
 
     /* Applications */
     UserAppRunActiveState();
+    /* Applications */
+    MyUserAppRunActiveState();
     
     /* System sleep*/
     HEARTBEAT_OFF();
