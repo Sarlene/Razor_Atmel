@@ -154,7 +154,7 @@ static void UserAppSM_Idle(void)
   static u16 u16BlinkCount=0;
   static u8 u8CharCount=0;
   static u8 u8CharIndex=0;  
-   bool flag=FALSE;
+  bool flag=FALSE;
   u16BlinkCount++;
   if(u16BlinkCount==10)
   {
@@ -169,9 +169,15 @@ static void UserAppSM_Idle(void)
     {
      for(u8 i=0;i<u8CharCount;i++)
      {
-       LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer);
+       LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer); 
        u8CharIndex++;
      }
+     if(u8CharIndex==21)
+     {
+       LCDClearChars(LINE2_START_ADDR,20); 
+       LCDMessage(LINE2_START_ADDR, UserApp_au8UserInputBuffer); 
+       u8CharIndex=1;
+     }           
     }
     flag=FALSE;    
   }  
