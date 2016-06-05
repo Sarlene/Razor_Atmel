@@ -152,6 +152,7 @@ State Machine Function Definitions
 static void UserAppSM_Idle(void)
 {
   static u16 u16BlinkCount=0;
+  static u16 u16CharCount=0;
   static u8 u8CharCount=0;
   static u8 u8CharIndex=0;  
   bool flag=FALSE;
@@ -171,6 +172,7 @@ static void UserAppSM_Idle(void)
      {
        LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer); 
        u8CharIndex++;
+       u16CharCount++;
      }
      if(u8CharIndex==21)
      {
