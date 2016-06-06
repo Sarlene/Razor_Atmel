@@ -8,7 +8,7 @@ To start a new task using this my_user_app as a template:
  3. Add yournewtaskname.c and yournewtaskname.h to the Application Include and Source groups in the IAR project
  4. Use ctrl-h (make sure "Match Case" is checked) to find and replace all instances of "my_user_app" with "yournewtaskname"
  5. Use ctrl-h to find and replace all instances of "MyUserApp" with "YourNewTaskName"
- 6. Use ctrl-h to find and replace all instances of "MY_MY_USER_APP" with "YOUR_NEW_TASK_NAME"
+ 6. Use ctrl-h to find and replace all instances of "MY_USER_APP" with "YOUR_NEW_TASK_NAME"
  7. Add a call to YourNewTaskNameInitialize() in the init section of main
  8. Add a call to YourNewTaskNameRunActiveState() in the Super Loop section of main
  9. Update yournewtaskname.h per the instructions at the top of yournewtaskname.h
@@ -49,16 +49,13 @@ volatile u32 G_u32MyUserAppFlags;                       /* Global state flags */
 extern volatile u32 G_u32SystemFlags;                  /* From main.c */
 extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 
-extern volatile u8 newflag;
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 
-extern u8 G_au8DebugScanfBuffer[];                     /* From debug.c */
-extern u8 G_u8DebugScanfCharCount;                     /* From debug.c  */
 
-extern volatile  u8 flagnew=FALSE;
-extern volatile  u16 u16Count=0;
-
+extern volatile bool flagnew;
+extern volatile u8 u8TimeCount;
+extern volatile u8 MyNameBuffer[200];  
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
@@ -95,8 +92,7 @@ Promises:
 */
 void MyUserAppInitialize(void)
 {
-  PWMAudioSetFrequency(BUZZER1,500);
-
+  PWMAudioSetFrequency(BUZZER1, 200);
 
   /* If good initialization, set state to Idle */
   if( 1 )
@@ -146,20 +142,7 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void MyUserAppSM_Idle(void)
 {
-  if(flagnew)
-  {
-    u16Count++;
-    PWMAudioOn(BUZZER1);
-    LedBlink(RED, LED_1HZ);
-    if(u16Count==5000)
-    { 
-      u16Count=0;
-      PWMAudioOff(BUZZER1);
-      LedOff(RED);
-    }
-    flagnew=FALSE;
-  }
-
+  
 } /* end MyUserAppSM_Idle() */
      
 
@@ -167,7 +150,32 @@ static void MyUserAppSM_Idle(void)
 /* Handle an error */
 static void MyUserAppSM_Error(void)          
 {
-  
+  static u16 u16Count=0;
+  static u16 u16Count1 = 0;
+  if(flagnew)
+  {
+    u16Count++;
+    PWMAudioOn(BUZZER1);
+    LedBlink(RED, LED_1HZ);
+    // print 5s
+    if(u16Count==100) 
+    {
+      u16Count1++;
+      u16Count=0;
+      if(u16Count1==50)
+      {
+        PWMAudioOff(BUZZER1);
+        LedOff(RED);
+        
+        //DebugPrintf(u8String2);
+        DebugPrintNumber(u8TimeCount);
+        
+        u16Count1=0;
+      }
+    }
+    flagnew=FALSE;
+  }
+
 } /* end MyUserAppSM_Error() */
 
 

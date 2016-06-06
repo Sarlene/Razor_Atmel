@@ -6,7 +6,7 @@ To start a new task using this my_user_app as a template:
 1. Follow the instructions at the top of my_user_app.c
 2. Use ctrl-h to find and replace all instances of "my_user_app" with "yournewtaskname"
 3. Use ctrl-h to find and replace all instances of "MyUserApp" with "YourNewTaskName"
-4. Use ctrl-h to find and replace all instances of "MY_MY_USER_APP" with "YOUR_NEW_TASK_NAME"
+4. Use ctrl-h to find and replace all instances of "MY_USER_APP" with "YOUR_NEW_TASK_NAME"
 5. Add #include yournewtaskname.h" to configuration.h
 6. Add/update any special configurations required in configuration.h (e.g. peripheral assignment and setup values)
 7. Delete this text (between the dashed lines)
@@ -17,8 +17,8 @@ Header file for yournewtaskname.c
 
 **********************************************************************************************************************/
 
-#ifndef __MY_MY_USER_APP_H
-#define __MY_MY_USER_APP_H
+#ifndef __MY_USER_APP_H
+#define __MY_USER_APP_H
 
 #define USER_INPUT_BUFFER_SIZE  (u16)(DEBUG_SCANF_BUFFER_SIZE + 1)    /* Size of buffer for scanf messages */
 
@@ -62,7 +62,7 @@ static void MyUserAppSM_Error(void);
 static void MyUserAppSM_FailedInit(void);        
 
 
-#endif /* __MY_MY_USER_APP_H */
+#endif /* __MY_USER_APP_H */
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
