@@ -52,6 +52,13 @@ extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 
+/* Existing variables (defined in other files -- should all contain the "extern" keyword) */
+extern AntSetupDataType G_stAntSetupData;                         /* From ant.c */
+
+extern u32 G_u32AntApiCurrentDataTimeStamp;                       /* From ant_api.c */
+extern AntApplicationMessageType G_eAntApiCurrentMessageClass;    /* From ant_api.c */
+extern u8 G_au8AntApiCurrentData[ANT_APPLICATION_MESSAGE_BYTES];  /* From ant_api.c */
+extern u8 G_au8AntApiCurrentData1[ANT_APPLICATION_MESSAGE_BYTES];
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
@@ -87,7 +94,31 @@ Promises:
   - 
 */
 void UserAppInitialize(void)
-{
+{ 
+  /* Configure ANT for this application */
+  G_stAntSetupData.AntChannel          = ANT_CHANNEL_USERAPP;
+  G_stAntSetupData.AntSerialLo         = ANT_SERIAL_LO_USERAPP;
+  G_stAntSetupData.AntSerialHi         = ANT_SERIAL_HI_USERAPP;
+  G_stAntSetupData.AntDeviceType       = ANT_DEVICE_TYPE_USERAPP;
+  G_stAntSetupData.AntTransmissionType = ANT_TRANSMISSION_TYPE_USERAPP;
+  G_stAntSetupData.AntChannelPeriodLo  = ANT_CHANNEL_PERIOD_LO_USERAPP;
+  G_stAntSetupData.AntChannelPeriodHi  = ANT_CHANNEL_PERIOD_HI_USERAPP;
+  G_stAntSetupData.AntFrequency        = ANT_FREQUENCY_USERAPP;
+  G_stAntSetupData.AntTxPower          = ANT_TX_POWER_USERAPP;
+
+  /* If good initialization, set state to Idle */
+  if( AntChannelConfig(ANT_MASTER) )
+  {
+    AntOpenChannel();
+    UserApp_StateMachine = UserAppSM_Idle;
+  }
+  else
+  {
+    /* The task isn't properly initialized, so shut it down and don't run */
+    UserApp_StateMachine = UserAppSM_FailedInit;
+  }
+
+  
   
   /* If good initialization, set state to Idle */
   if( 1 )
@@ -137,8 +168,81 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
+//  u8 u8NumberToAscii(u32 u32Number_,u8* pu8AsciiString_);
+//  u8 u8NumberToAscii(G_u32AntApiCurrentDataTimeStamp,u8* pu8AsciiString_);  
+  static u16 u16Count=0;
+  static char Led[]={WHITE, PURPLE, BLUE, CYAN, GREEN, YELLOW, ORANGE, RED};
+  static u8 au8TestMessage[] = {0, 0, 0, 0, 0xA5, 0, 0, 0};
+  u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
+
+  if( AntReadData() )
+  {
+    /* New data message: check what it is */
+    if(G_eAntApiCurrentMessageClass == ANT_DATA)
+    {
+      /*We Got The Data!*/
+      /* We got some data: parse it into au8DataContent */
+       for(u8 i = 0; i < ANT_DATA_BYTES; i++)
+       {
+         au8DataContent[2 * i]     = HexToASCIICharUpper(G_au8AntApiCurrentData[i] / 16);
+         au8DataContent[2 * i + 1] = HexToASCIICharUpper(G_au8AntApiCurrentData[i] % 16);
+         if(G_au8AntApiCurrentData[i]==0xFF)
+         { 
+           LedOn(Led[i]);
+         }
+       }       
+       LCDMessage(LINE2_START_ADDR, au8DataContent);
+    }
+     else if(G_eAntApiCurrentMessageClass == ANT_TICK)
+    {
+     /* A channel period has gone by: typically this is when new data should be queued to be sent */
+     /* Update and queue the new message data */
+      au8TestMessage[7]++;
+      if(au8TestMessage[7] == 0)
+      {
+        au8TestMessage[6]++;
+        if(au8TestMessage[6] == 0)
+        {
+          au8TestMessage[5]++;
+        }
+      }
+    /* Check all the buttons and update au8TestMessage according to the button state */ 
+      au8TestMessage[0] = 0x00;
+      if( IsButtonPressed(BUTTON0) )
+      {
+        au8TestMessage[0] = 0xff;
+      }
+      au8TestMessage[1] = 0x00;
+      if( IsButtonPressed(BUTTON1) )
+      {
+        au8TestMessage[1] = 0xff;
+      } 
+      au8TestMessage[2] = 0x00;
+      if( IsButtonPressed(BUTTON2) )
+      {
+        au8TestMessage[2] = 0xff;
+      }
+      au8TestMessage[3] = 0x00;
+      if( IsButtonPressed(BUTTON3) )
+      {
+        au8TestMessage[3] = 0xff;
+      }
+      AntQueueBroadcastMessage(au8TestMessage);
     
-} /* end UserAppSM_Idle() */
+    }
+  }
+/*  u16Count++;
+  for(u8 j = 0; j < ANT_APPLICATION_MESSAGE_BYTES; j++)
+  { 
+    G_au8AntApiCurrentData1[j]=G_au8AntApiCurrentData[j];
+    if(u16Count==50)
+    {
+      u16Count=0;
+      if(G_au8AntApiCurrentData1[j]!=G_au8AntApiCurrentData[j])
+      LCDMessage(LINE1_START_ADDR, u8* pu8AsciiString_); 
+    }
+  } */
+}  /* end UserAppSM_Idle() */
      
 
 /*-------------------------------------------------------------------------------------------------------------------*/
