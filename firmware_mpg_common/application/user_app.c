@@ -42,7 +42,8 @@ All Global variable names shall start with "G_"
 ***********************************************************************************************************************/
 /* New variables */
 volatile u32 G_u32UserAppFlags;                       /* Global state flags */
-volatile u8 newflag=FALSE;
+volatile  u8 flagnew=FALSE;
+volatile u8 u8TimeCount=0;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Existing variables (defined in other files -- should all contain the "extern" keyword) */
@@ -54,6 +55,7 @@ extern volatile u32 G_u32SystemTime1s;                 /* From board-specific so
 
 extern u8 G_au8DebugScanfBuffer[];                     /* From debug.c */
 extern u8 G_u8DebugScanfCharCount;                     /* From debug.c  */
+  
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
@@ -65,7 +67,7 @@ static u32 UserApp_u32Timeout;                      /* Timeout counter used acro
 static u8 UserApp_au8MyName[] = "A3.SuXiuLing";
 static u8 MyName[]="suxiuling";
 static u8 MyName1[]="SUXIULING";
-static u8 MyNameBuffer[200];
+volatile u8 MyNameBuffer[200];
 static u8 UserApp_au8UserInputBuffer[USER_INPUT_BUFFER_SIZE]; 
 /**********************************************************************************************************************
 Function Definitions
@@ -93,14 +95,13 @@ Promises:
   - 
 */
 void UserAppInitialize(void)
-{
+{  //初始化名字和背景色
   LCDMessage(LINE1_START_ADDR, UserApp_au8MyName);
   LCDClearChars(LINE1_START_ADDR + 13, 5);
   LedOn(LCD_RED);
   LedOn(LCD_BLUE);
-  LedOff(LCD_GREEN);
-  
-  for(u8 i = 0; i < USER_INPUT_BUFFER_SIZE; i++)
+  LedOff(LCD_GREEN); 
+  for(u8 i = 0; i < USER_INPUT_BUFFER_SIZE; i++)   //初始化Buffer
   {
     UserApp_au8UserInputBuffer[i] = 0;
   }
@@ -152,7 +153,7 @@ State Machine Function Definitions
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
-{
+{   //定义静态变量
   static u16 u16BlinkCount=0;
   static u16 u16CharCount=0;
   static u8 u8CharCount=0;
@@ -163,23 +164,25 @@ static void UserAppSM_Idle(void)
   static u8 u8k=0;
   bool flag=FALSE;
   u16BlinkCount++;
+  //实时显示
   if(u16BlinkCount==10)
   {
     u16BlinkCount=0;
     flag=TRUE;
   }
+  //标志正确，读取数据
   if(flag==TRUE)
   {
     u8CharCount = DebugScanf(UserApp_au8UserInputBuffer);
     UserApp_au8UserInputBuffer[u8CharCount] = '\0';
     if(u8CharCount!=0)
-    {
+    {  //从左向右显示
        for(u8 i=0;i<u8CharCount;i++)
        {
          LCDMessage(LINE2_START_ADDR+u8CharIndex, UserApp_au8UserInputBuffer); 
          u8CharIndex++;
          u16CharCount++; 
-       }
+       }      //清屏再从左开始
        if(u8CharIndex==21)
        {
          LCDClearChars(LINE2_START_ADDR,20); 
@@ -188,7 +191,8 @@ static void UserAppSM_Idle(void)
        }
     }
     flag=FALSE;
-  }
+  }  
+  // 按键操作
   if( WasButtonPressed(BUTTON0) )
   {
     ButtonAcknowledge(BUTTON0);
@@ -212,7 +216,7 @@ static void UserAppSM_Idle(void)
     ButtonAcknowledge(BUTTON3);
     DebugPrintf(MyNameBuffer);
   }
-
+ // 字符比较，挑出自己名字的字母
   if((UserApp_au8UserInputBuffer[u8j]==MyName[u8i])||(UserApp_au8UserInputBuffer[u8j]==MyName1[u8i]))
   {
     MyNameBuffer[u8k++]=UserApp_au8UserInputBuffer[u8j];
@@ -220,8 +224,10 @@ static void UserAppSM_Idle(void)
     if(u8i==9)
     {
       u8i=0;
+      u8TimeCount++;
     }
   }
+
 } /* end UserAppSM_Idle() */
      
 
