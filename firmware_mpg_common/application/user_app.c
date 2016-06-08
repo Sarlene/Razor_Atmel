@@ -169,10 +169,8 @@ State Machine Function Definitions
 static void UserAppSM_Idle(void)
 {
 //  u8 u8NumberToAscii(u32 u32Number_,u8* pu8AsciiString_);
-// u8 u8NumberToAscii(G_u32AntApiCurrentDataTimeStamp,u8* pu8AsciiString_);  
-  u8* pu8AsciiString;
-  pu8AsciiString=&G_u32AntApiCurrentDataTimeStamp;
-  static u16 u16Count=0;
+  
+  static u8  u8TimeStamp[]=0;
   static char Led[]={WHITE, PURPLE, BLUE, CYAN, GREEN, YELLOW, ORANGE, RED};
   static u8 au8TestMessage[] = {0, 0, 0, 0, 0xA5, 0, 0, 0};
   u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
@@ -192,6 +190,10 @@ static void UserAppSM_Idle(void)
          { 
            LedOn(Led[i]);
          }
+         else
+         {
+           LedOff(Led[i]);
+         }
        }       
        LCDMessage(LINE2_START_ADDR, au8DataContent);
     }
@@ -203,8 +205,9 @@ static void UserAppSM_Idle(void)
       if(au8TestMessage[7] == 0)
       {
         au8TestMessage[6]++;
-        if(au8TestMessage[6] == 0)
+        if(au8TestMessage[6] == 0)   
         {
+
           au8TestMessage[5]++;
         }
       }
@@ -233,15 +236,16 @@ static void UserAppSM_Idle(void)
     
     }
   }
-  u16Count++;
+ 
+  
   for(u8 j = 0; j < ANT_APPLICATION_MESSAGE_BYTES; j++)
-  { 
-    G_au8AntApiCurrentData1[j]=G_au8AntApiCurrentData[j];
-    if(u16Count==50)
+  {
+    if(G_au8AntApiCurrentData1[j]!=G_au8AntApiCurrentData[j])
     {
-      u16Count=0;
-      if(G_au8AntApiCurrentData1[j]!=G_au8AntApiCurrentData[j])
-      LCDMessage(LINE1_START_ADDR,pu8AsciiString ); 
+      G_au8AntApiCurrentData1[j]=G_au8AntApiCurrentData[j];
+      NumberToAscii(G_u32AntApiCurrentDataTimeStamp,u8TimeStamp); 
+      LCDMessage(LINE1_START_ADDR, u8TimeStamp);
+      LCDClearChars(LINE1_START_ADDR + 5, 13);
     }
   }
 }  /* end UserAppSM_Idle() */
