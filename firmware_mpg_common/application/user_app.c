@@ -60,7 +60,12 @@ Variable names shall start with "UserApp_" and be declared as static.
 static fnCode_type UserApp_StateMachine;            /* The state machine function pointer */
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
-
+static u8 White[]="20";
+static u8 Purple[]="30";
+static u8 Blue[]="10";
+static u8 Cyan[]="15";
+static u8 Green[]="25";
+static u8 Yellow[]="8";
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -137,10 +142,81 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-    
+  static u8 u8i=0;
+  u8 au8Message1[] = "Yes";
+  u8 au8Message2[] = "No ";
+//  u8 au8Message3[] = "yuan"; 
+  if( WasButtonPressed(BUTTON0) )
+  {
+    /* Be sure to acknowledge the button press */
+    ButtonAcknowledge(BUTTON0);
+    u8i++;
+  } 
+  if(WasButtonPressed(BUTTON2))
+  {
+    ButtonAcknowledge(BUTTON2);
+    LCDMessage(LINE2_START_ADDR, au8Message2);
+  }
+  if(WasButtonPressed(BUTTON3))
+  {
+    ButtonAcknowledge(BUTTON3);
+    LCDMessage(LINE2_START_ADDR, au8Message1);
+  }
+//  LCDMessage(LINE2_START_ADDR+16, au8Message3);
+ 
+  switch(u8i%7)
+      {
+        case 0: /* white */
+          LedOn(LCD_RED);
+          LedOn(LCD_GREEN);
+          LedOn(LCD_BLUE);
+          break;
+
+        case 1: /* purple */
+          LedOn(LCD_RED);
+          LedOff(LCD_GREEN);
+          LedOn(LCD_BLUE);
+          break;
+          
+        case 2: /* blue */
+          LedOff(LCD_RED);
+          LedOff(LCD_GREEN);
+          LedOn(LCD_BLUE);
+          break;
+          
+        case 3: /* cyan */
+          LedOff(LCD_RED);
+          LedOn(LCD_GREEN);
+          LedOn(LCD_BLUE);
+          break;
+          
+        case 4: /* green */
+          LedOff(LCD_RED);
+          LedOn(LCD_GREEN);
+          LedOff(LCD_BLUE);
+          break;
+          
+        case 5: /* yellow */
+          LedOn(LCD_RED);
+          LedOn(LCD_GREEN);
+          LedOff(LCD_BLUE);
+          break;
+          
+        case 6: /* red */
+          LedOn(LCD_RED);
+          LedOff(LCD_GREEN);
+          LedOff(LCD_BLUE);
+          break;
+
+      } /* end switch */
+   
 } /* end UserAppSM_Idle() */
      
 
+static void UserAppSM_Buzzer(void)          
+{
+  
+} /* end UserAppSM_Buzzer() */
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
 static void UserAppSM_Error(void)          
