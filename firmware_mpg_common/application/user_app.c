@@ -60,12 +60,12 @@ Variable names shall start with "UserApp_" and be declared as static.
 static fnCode_type UserApp_StateMachine;            /* The state machine function pointer */
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
-static u8 White[]="20";
-static u8 Purple[]="30";
-static u8 Blue[]="10";
-static u8 Cyan[]="15";
-static u8 Green[]="25";
-static u8 Yellow[]="8";
+static u8 White[]="20yuan";
+static u8 Purple[]="30yuan";
+static u8 Blue[]="10yuan";
+static u8 Cyan[]="15yuan";
+static u8 Green[]="25yuan";
+static u8 Yellow[]="8yuan";
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -93,7 +93,13 @@ Promises:
 */
 void UserAppInitialize(void)
 {
-  
+  LedOn(LCD_BLUE);
+  LedOff(LCD_GREEN);
+  LedOn(LCD_RED);
+  u8 au8WelcomeMessage[]="Welcome to Delicious";
+  LCDCommand(LCD_CLEAR_CMD);
+  LCDMessage(LINE1_START_ADDR,au8WelcomeMessage);
+
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -142,74 +148,176 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-  static u8 u8i=0;
+  static u8 LCDColourIndex=0;
   u8 au8Message1[] = "Yes";
   u8 au8Message2[] = "No ";
-//  u8 au8Message3[] = "yuan"; 
-  if( WasButtonPressed(BUTTON0) )
+  static u16 u16BlinkCount = 0;        /*time counter 100ms*/
+  static u16 u16Counter = 1;           /*which light to bright*/
+  static u8 Led[]={WHITE,PURPLE,BLUE,CYAN,GREEN,YELLOW};  
+  static u8 LEDColourIndex;  
+  static bool flag=TRUE;
+  if(flag)
   {
-    /* Be sure to acknowledge the button press */
-    ButtonAcknowledge(BUTTON0);
-    u8i++;
-  } 
-  if(WasButtonPressed(BUTTON2))
+    u16BlinkCount++;                    /*time goes*/
+    if(u16BlinkCount == 100)             /*time to change the light*/
+    {
+      u16BlinkCount = 0;               /*clear the time counter*/
+      /* Update the counter and roll at 16 */
+      if(u16Counter == 256)                /*for light to come back*/
+      {
+        u16Counter = 1;
+      }
+      /*bright the lights in turn*/
+      if(u16Counter & 0x01)
+      {
+        LedOn(RED);
+      }
+      else
+      {
+        LedOff(RED);
+      }
+      if(u16Counter & 0x02)
+      {
+        LedOn(ORANGE);
+      }
+      else
+      {
+        LedOff(ORANGE);
+      }
+      if(u16Counter & 0x04)
+      {
+        LedOn(YELLOW);
+       }
+      else
+      {
+        LedOff(YELLOW);
+      }
+      if(u16Counter & 0x08)
+      {
+        LedOn(GREEN);
+      }
+      else
+      {
+        LedOff(GREEN);
+      }
+      if(u16Counter & 0x10)
+      {
+        LedOn( CYAN);
+      }
+      else
+      {
+        LedOff( CYAN);
+      }
+      if(u16Counter & 0x20)
+      {
+        LedOn(BLUE);
+      }
+      else
+      {
+        LedOff(BLUE);
+      }
+      if(u16Counter & 0x40)
+      {
+        LedOn(PURPLE);
+      }
+      else
+      {
+        LedOff(PURPLE);
+      }
+      if(u16Counter & 0x80)
+      {
+        LedOn(WHITE);
+      }
+      else
+      {
+        LedOff(WHITE);
+      }
+      u16Counter*=2;
+    }
+  }
+    /*if press button3,then start to order*/
+  if(WasButtonPressed(BUTTON3))
+  {
+    flag=FALSE;
+    ButtonAcknowledge(BUTTON3);
+    LedOff(WHITE);
+    LedOff(PURPLE);
+    LedOff(BLUE);
+    LedOff(CYAN);
+    LedOff(GREEN);
+    LedOff(YELLOW);
+    LedOn(ORANGE);
+    LedOff(RED);
+    LedOn(LCD_RED);
+    LedOn(LCD_GREEN);
+    LedOn(LCD_BLUE);
+//    LCDMessage(LINE2_START_ADDR+13, Price);  
+    LedOn(Led[LEDColourIndex++%6]);
+
+    LCDMessage(LINE2_START_ADDR+13, White);
+  }
+  if(WasButtonPressed(BUTTON2))    /*if press button2,then display No*/
   {
     ButtonAcknowledge(BUTTON2);
     LCDMessage(LINE2_START_ADDR, au8Message2);
   }
-  if(WasButtonPressed(BUTTON3))
+  if(WasButtonPressed(BUTTON1))       /*if press button1,then display Yes*/
   {
-    ButtonAcknowledge(BUTTON3);
+    ButtonAcknowledge(BUTTON1);
     LCDMessage(LINE2_START_ADDR, au8Message1);
+  } 
+      /*if press button0,then start to inc LCDColourIndex*/
+  if( WasButtonPressed(BUTTON0) )
+  {
+    /* Be sure to acknowledge the button press */
+    ButtonAcknowledge(BUTTON0);
+    LCDColourIndex++;  
+    switch(LCDColourIndex%7)                       /*start to change LCD*/         
+    {                                             
+      case 0: /* white */
+        LedOn(LCD_RED);
+        LedOn(LCD_GREEN);
+        LedOn(LCD_BLUE);
+        break;
+
+      case 1: /* purple */
+        LedOn(LCD_RED);
+        LedOff(LCD_GREEN);
+        LedOn(LCD_BLUE);
+        break;
+        
+      case 2: /* blue */
+        LedOff(LCD_RED);
+        LedOff(LCD_GREEN);
+        LedOn(LCD_BLUE);
+        break;
+        
+      case 3: /* cyan */
+        LedOff(LCD_RED);
+        LedOn(LCD_GREEN);
+        LedOn(LCD_BLUE);
+        break;
+        
+      case 4: /* green */
+        LedOff(LCD_RED);
+        LedOn(LCD_GREEN);
+        LedOff(LCD_BLUE);
+        break;
+        
+      case 5: /* yellow */
+        LedOn(LCD_RED);
+        LedOn(LCD_GREEN);
+        LedOff(LCD_BLUE);
+        break;
+        
+      case 6: /* red */
+        LedOn(LCD_RED);
+        LedOff(LCD_GREEN);
+        LedOff(LCD_BLUE);
+        break;
+
+    } /* end switch */
   }
-//  LCDMessage(LINE2_START_ADDR+16, au8Message3);
- 
-  switch(u8i%7)
-      {
-        case 0: /* white */
-          LedOn(LCD_RED);
-          LedOn(LCD_GREEN);
-          LedOn(LCD_BLUE);
-          break;
-
-        case 1: /* purple */
-          LedOn(LCD_RED);
-          LedOff(LCD_GREEN);
-          LedOn(LCD_BLUE);
-          break;
-          
-        case 2: /* blue */
-          LedOff(LCD_RED);
-          LedOff(LCD_GREEN);
-          LedOn(LCD_BLUE);
-          break;
-          
-        case 3: /* cyan */
-          LedOff(LCD_RED);
-          LedOn(LCD_GREEN);
-          LedOn(LCD_BLUE);
-          break;
-          
-        case 4: /* green */
-          LedOff(LCD_RED);
-          LedOn(LCD_GREEN);
-          LedOff(LCD_BLUE);
-          break;
-          
-        case 5: /* yellow */
-          LedOn(LCD_RED);
-          LedOn(LCD_GREEN);
-          LedOff(LCD_BLUE);
-          break;
-          
-        case 6: /* red */
-          LedOn(LCD_RED);
-          LedOff(LCD_GREEN);
-          LedOff(LCD_BLUE);
-          break;
-
-      } /* end switch */
-   
 } /* end UserAppSM_Idle() */
      
 
