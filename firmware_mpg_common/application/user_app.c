@@ -60,6 +60,7 @@ Variable names shall start with "UserApp_" and be declared as static.
 static fnCode_type UserApp_StateMachine;            /* The state machine function pointer */
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
+static bool flag=TRUE;
 static u8 White[]="20yuan";
 static u8 Purple[]="30yuan";
 static u8 Blue[]="10yuan";
@@ -154,8 +155,9 @@ static void UserAppSM_Idle(void)
   static u16 u16BlinkCount = 0;        /*time counter 100ms*/
   static u16 u16Counter = 1;           /*which light to bright*/
   static u8 Led[]={WHITE,PURPLE,BLUE,CYAN,GREEN,YELLOW};  
-  static u8 LEDColourIndex;  
-  static bool flag=TRUE;
+  static u8 LEDColourIndex=5;
+  static u8 Button2Counter=0;  
+
   if(flag)
   {
     u16BlinkCount++;                    /*time goes*/
@@ -252,21 +254,41 @@ static void UserAppSM_Idle(void)
     LedOn(LCD_GREEN);
     LedOn(LCD_BLUE);
 //    LCDMessage(LINE2_START_ADDR+13, Price);  
-    LedOn(Led[LEDColourIndex++%6]);
-
+    LEDColourIndex+=1;
+    LedOn(Led[LEDColourIndex%6]);
     LCDMessage(LINE2_START_ADDR+13, White);
   }
+  
   if(WasButtonPressed(BUTTON2))    /*if press button2,then display No*/
   {
     ButtonAcknowledge(BUTTON2);
-    LCDMessage(LINE2_START_ADDR, au8Message2);
+    if(Button2Counter++%2==0)
+    {
+      LCDMessage(LINE2_START_ADDR, au8Message1);   /*if press button2 again,then display Yes*/
+    }
+    else
+    {
+      LCDMessage(LINE2_START_ADDR, au8Message2);
+    }
   }
-  if(WasButtonPressed(BUTTON1))       /*if press button1,then display Yes*/
+  if(WasButtonPressed(BUTTON1))       /*if press button1,then move left*/
   {
     ButtonAcknowledge(BUTTON1);
-    LCDMessage(LINE2_START_ADDR, au8Message1);
+    LedOff(WHITE);
+    LedOff(PURPLE);
+    LedOff(BLUE);
+    LedOff(CYAN);
+    LedOff(GREEN);
+    LedOff(YELLOW);
+    LedOn(ORANGE);
+    LedOff(RED);
+    LedOn(LCD_RED);
+    LedOn(LCD_GREEN);
+    LedOn(LCD_BLUE);
+    LEDColourIndex-=1;
+    LedOn(Led[LEDColourIndex%6]);
   } 
-      /*if press button0,then start to inc LCDColourIndex*/
+  /*if press button0,then start to inc LCDColourIndex*/
   if( WasButtonPressed(BUTTON0) )
   {
     /* Be sure to acknowledge the button press */
@@ -318,12 +340,182 @@ static void UserAppSM_Idle(void)
 
     } /* end switch */
   }
+  if(IsButtonHeld(BUTTON3,1000))    /*if press button3 1s,then buzzer on*/
+  {
+    UserApp_StateMachine = UserAppSM_Buzzer;
+  }
+
 } /* end UserAppSM_Idle() */
      
 
 static void UserAppSM_Buzzer(void)          
 {
-  
+  static u8 u8TimeStamp=500;
+  static u8 u8MusicNote=0;
+  char MusicScore[]="022333055550022333005555055666031222220022333055550022333005555055666031222220006677AAAA77AAA00677AAAA77AAA00367AAAA7ACCCCBBAA777700336677AAAA77AAAA6677AA777765321111001666556633331133222200336677AAAA77AAAAA6677AA77776532111100166554433332211222205544332333111110";
+  u8TimeStamp--;
+  if(u8TimeStamp==0 && MusicScore[u8MusicNote]!='\0')
+  {
+    switch(MusicScore[u8MusicNote])
+    {
+      case '0':
+        PWMAudioOff(BUZZER1);
+        LedOn(WHITE);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(RED);
+        break;
+      case '1':
+        PWMAudioSetFrequency(BUZZER1, 523);
+        PWMAudioOn(BUZZER1);
+        LedOn(PURPLE);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(WHITE);
+        LedOff(BLUE);
+        LedOff(RED);
+        break;
+      case '2':
+        PWMAudioSetFrequency(BUZZER1, 587);
+        PWMAudioOn(BUZZER1);
+        LedOn(BLUE);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(WHITE);
+        LedOff(RED);
+        break;
+      case '3':
+        PWMAudioSetFrequency(BUZZER1, 659);
+        PWMAudioOn(BUZZER1);
+        LedOn(CYAN);
+        LedOff(WHITE);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(RED);
+        break;
+      case '4':
+        PWMAudioSetFrequency(BUZZER1, 698);
+        PWMAudioOn(BUZZER1);
+        LedOn(GREEN);
+        LedOff(CYAN);
+        LedOff(WHITE);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(RED);
+        break;
+      case '5':
+        PWMAudioSetFrequency(BUZZER1, 783);
+        PWMAudioOn(BUZZER1);
+        LedOn(YELLOW);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(WHITE);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(RED);
+        break;
+      case '6':
+        PWMAudioSetFrequency(BUZZER1, 880);
+        PWMAudioOn(BUZZER1);
+        LedOn(ORANGE);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(WHITE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(RED);
+        break;
+      case '7':
+        PWMAudioSetFrequency(BUZZER1, 987);
+        PWMAudioOn(BUZZER1);
+        LedOn(RED);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(WHITE);
+        break;
+      case 'A':
+        PWMAudioSetFrequency(BUZZER1, 1046);
+        PWMAudioOn(BUZZER1);
+        LedBlink(RED,LED_1HZ);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(WHITE);
+        break;
+      case 'B':
+        PWMAudioSetFrequency(BUZZER1, 1174);
+        PWMAudioOn(BUZZER1);
+        LedBlink(RED,LED_2HZ);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(WHITE);
+        break;
+      case 'C':
+        PWMAudioSetFrequency(BUZZER1, 1318);
+        PWMAudioOn(BUZZER1);
+        LedBlink(RED,LED_4HZ);
+        LedOff(CYAN);
+        LedOff(GREEN);
+        LedOff(YELLOW);
+        LedOff(ORANGE);
+        LedOff(PURPLE);
+        LedOff(BLUE);
+        LedOff(WHITE);
+        break;
+    }
+    u8MusicNote++;
+  }
+  if(WasButtonPressed(BUTTON0))
+  {
+    ButtonAcknowledge(BUTTON0);
+    LedOn(LCD_RED);
+    LedOff(LCD_GREEN);
+    LedOff(LCD_BLUE);
+  }
+  if(IsButtonHeld(BUTTON2, 1000))
+  {
+    flag=TRUE;
+    LedOff(WHITE);
+    LedOff(PURPLE);
+    LedOff(BLUE);
+    LedOff(CYAN);
+    LedOff(GREEN);
+    LedOff(YELLOW);
+    LedOff(ORANGE);
+    LedOff(RED);
+    LedOn(LCD_RED);
+    LedOn(LCD_GREEN);
+    LedOn(LCD_BLUE);
+    PWMAudioOff(BUZZER1);
+    UserApp_StateMachine = UserAppInitialize;
+  }
 } /* end UserAppSM_Buzzer() */
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
