@@ -61,12 +61,7 @@ static fnCode_type UserApp_StateMachine;            /* The state machine functio
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
 static bool flag=TRUE;
-static u8 White[]="20yuan";
-static u8 Purple[]="30yuan";
-static u8 Blue[]="10yuan";
-static u8 Cyan[]="15yuan";
-static u8 Green[]="25yuan";
-static u8 Yellow[]="8yuan";
+static u8 i=0;
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -150,14 +145,19 @@ State Machine Function Definitions
 static void UserAppSM_Idle(void)
 {
   static u8 LCDColourIndex=0;
-  u8 au8Message1[] = "Yes";
-  u8 au8Message2[] = "No ";
+  static u16 Total=0;
+  static u8 au8DisplayCost2[5];
+  unsigned char NUM[6]={0,0,0,0,0,0};
+  u8 au8Message1[] = "Yes            ";
+  u8 au8Message2[] = "No             ";
+  u8 au8Message3[]=" $ ";
   static u16 u16BlinkCount = 0;        /*time counter 100ms*/
   static u16 u16Counter = 1;           /*which light to bright*/
-  static u8 Led[]={WHITE,PURPLE,BLUE,CYAN,GREEN,YELLOW};  
+  static u8 Led[]={WHITE,PURPLE,BLUE,CYAN,GREEN,YELLOW};
+  static u8 Price[]={30,48,22,20,12,15};
+  static u8 au8DisplayCost[3]; 
   static u8 LEDColourIndex=5;
   static u8 Button2Counter=0;  
-
   if(flag)
   {
     u16BlinkCount++;                    /*time goes*/
@@ -252,26 +252,34 @@ static void UserAppSM_Idle(void)
     LedOff(RED);
     LedOn(LCD_RED);
     LedOn(LCD_GREEN);
-    LedOn(LCD_BLUE);
-//    LCDMessage(LINE2_START_ADDR+13, Price);  
-    LEDColourIndex+=1;
+    LedOn(LCD_BLUE);  
+    LEDColourIndex+=1;                 /*display the kinds of food*/
     LedOn(Led[LEDColourIndex%6]);
-    LCDMessage(LINE2_START_ADDR+13, White);
+    LCDMessage(LINE2_START_ADDR+17, au8Message3);
+    LCDMessage(LINE2_START_ADDR, au8Message2);
+    Button2Counter=0;
+    au8DisplayCost[0]=Price[LEDColourIndex%6]/10+48;              /*display price*/
+    au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
+    LCDMessage(LINE2_START_ADDR+15, au8DisplayCost);
   }
-  
   if(WasButtonPressed(BUTTON2))    /*if press button2,then display No*/
   {
     ButtonAcknowledge(BUTTON2);
     if(Button2Counter++%2==0)
     {
+      NUM[LEDColourIndex%6]++;
       LCDMessage(LINE2_START_ADDR, au8Message1);   /*if press button2 again,then display Yes*/
     }
     else
     {
       LCDMessage(LINE2_START_ADDR, au8Message2);
     }
+  }    /* price calculation */
+  for(u8 j=0;j<6;j++)
+  {
+    Total += Price[j]*NUM[j];
   }
-  if(WasButtonPressed(BUTTON1))       /*if press button1,then move left*/
+  if(WasButtonPressed(BUTTON1))       /*if press button1,then move left to change */
   {
     ButtonAcknowledge(BUTTON1);
     LedOff(WHITE);
@@ -287,13 +295,21 @@ static void UserAppSM_Idle(void)
     LedOn(LCD_BLUE);
     LEDColourIndex-=1;
     LedOn(Led[LEDColourIndex%6]);
+    LCDMessage(LINE2_START_ADDR, au8Message2);
+    Button2Counter=0;
+    au8DisplayCost[0]=Price[LEDColourIndex%6]/10+48;
+    au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
+    LCDMessage(LINE2_START_ADDR+15, au8DisplayCost);
+
   } 
   /*if press button0,then start to inc LCDColourIndex*/
   if( WasButtonPressed(BUTTON0) )
   {
     /* Be sure to acknowledge the button press */
     ButtonAcknowledge(BUTTON0);
-    LCDColourIndex++;  
+    LCDColourIndex++;
+    LCDMessage(LINE2_START_ADDR, au8Message2);
+    Button2Counter=0;
     switch(LCDColourIndex%7)                       /*start to change LCD*/         
     {                                             
       case 0: /* white */
@@ -340,16 +356,23 @@ static void UserAppSM_Idle(void)
 
     } /* end switch */
   }
-  if(IsButtonHeld(BUTTON3,1000))    /*if press button3 1s,then buzzer on*/
+  if(IsButtonHeld(BUTTON3,1000))    /*if press button3 1s,then music on*/
   {
+    au8DisplayCost2[0]=Total/1000+48;              
+    au8DisplayCost2[1]=Total/100%10+48;
+    au8DisplayCost2[2]=Total/10%10+48;              /*display price*/
+    au8DisplayCost2[3]=Total%10+48;
+    LCDClearChars(LINE2_START_ADDR,20);
+    LCDMessage(LINE2_START_ADDR+10, au8DisplayCost2);
     UserApp_StateMachine = UserAppSM_Buzzer;
   }
 
 } /* end UserAppSM_Idle() */
      
 
-static void UserAppSM_Buzzer(void)          
+static void UserAppSM_Buzzer(void)          /* music */
 {
+  static bool flag1=FALSE;
   static u8 u8TimeStamp=500;
   static u8 u8MusicNote=0;
   char MusicScore[]="022333055550022333005555055666031222220022333055550022333005555055666031222220006677AAAA77AAA00677AAAA77AAA00367AAAA7ACCCCBBAA777700336677AAAA77AAAA6677AA777765321111001666556633331133222200336677AAAA77AAAAA6677AA77776532111100166554433332211222205544332333111110";
@@ -492,14 +515,15 @@ static void UserAppSM_Buzzer(void)
     }
     u8MusicNote++;
   }
-  if(WasButtonPressed(BUTTON0))
+  if(WasButtonPressed(BUTTON0))       /* hurry up */
   {
+    flag1=TRUE;
     ButtonAcknowledge(BUTTON0);
     LedOn(LCD_RED);
     LedOff(LCD_GREEN);
     LedOff(LCD_BLUE);
   }
-  if(IsButtonHeld(BUTTON2, 1000))
+  if(IsButtonHeld(BUTTON2, 1000))             /*if press button3 1s,then music off*/
   {
     flag=TRUE;
     LedOff(WHITE);
