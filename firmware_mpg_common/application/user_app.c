@@ -46,11 +46,18 @@ volatile u32 G_u32UserAppFlags;                       /* Global state flags */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Existing variables (defined in other files -- should all contain the "extern" keyword) */
+extern AntSetupDataType G_stAntSetupData;                         /* From ant.c */
+
+extern u32 G_u32AntApiCurrentDataTimeStamp;                       /* From ant_api.c */
+extern AntApplicationMessageType G_eAntApiCurrentMessageClass;    /* From ant_api.c */
+extern u8 G_au8AntApiCurrentData[ANT_APPLICATION_MESSAGE_BYTES];  /* From ant_api.c */
+
 extern volatile u32 G_u32SystemFlags;                  /* From main.c */
 extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
+
 
 
 /***********************************************************************************************************************
@@ -62,6 +69,7 @@ static u32 UserApp_u32Timeout;                      /* Timeout counter used acro
 
 static bool flag=TRUE;
 static u8 i=0;
+static u8 OrderMenus[48]={0};
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -95,6 +103,30 @@ void UserAppInitialize(void)
   u8 au8WelcomeMessage[]="Welcome to Delicious";
   LCDCommand(LCD_CLEAR_CMD);
   LCDMessage(LINE1_START_ADDR,au8WelcomeMessage);
+  
+  /* Configure ANT for this application */
+  G_stAntSetupData.AntChannel          = ANT_CHANNEL_USERAPP;
+  G_stAntSetupData.AntSerialLo         = ANT_SERIAL_LO_USERAPP;
+  G_stAntSetupData.AntSerialHi         = ANT_SERIAL_HI_USERAPP;
+  G_stAntSetupData.AntDeviceType       = ANT_DEVICE_TYPE_USERAPP;
+  G_stAntSetupData.AntTransmissionType = ANT_TRANSMISSION_TYPE_USERAPP;
+  G_stAntSetupData.AntChannelPeriodLo  = ANT_CHANNEL_PERIOD_LO_USERAPP;
+  G_stAntSetupData.AntChannelPeriodHi  = ANT_CHANNEL_PERIOD_HI_USERAPP;
+  G_stAntSetupData.AntFrequency        = ANT_FREQUENCY_USERAPP;
+  G_stAntSetupData.AntTxPower          = ANT_TX_POWER_USERAPP;
+
+  
+  /* If good initialization, set state to Idle */
+  if( AntChannelConfig(ANT_MASTER) )
+  {
+    AntOpenChannel();
+    UserApp_StateMachine = UserAppSM_Buzzer;
+  }
+  else
+  {
+    /* The task isn't properly initialized, so shut it down and don't run */
+    UserApp_StateMachine = UserAppSM_FailedInit;
+  }
 
   /* If good initialization, set state to Idle */
   if( 1 )
@@ -157,7 +189,7 @@ static void UserAppSM_Idle(void)
   static u8 Price[]={30,48,22,20,12,15};
   static u8 au8DisplayCost[3]; 
   static u8 LEDColourIndex=5;
-  static u8 Button2Counter=0;  
+  static u8 Button2Counter=0;
   if(flag)
   {
     u16BlinkCount++;                    /*time goes*/
@@ -269,6 +301,7 @@ static void UserAppSM_Idle(void)
     {
       NUM[LEDColourIndex%6]++;
       LCDMessage(LINE2_START_ADDR, au8Message1);   /*if press button2 again,then display Yes*/
+      OrderMenus[8*(LEDColourIndex%6)+(LCDColourIndex%6)]=1;
     }
     else
     {
@@ -300,7 +333,7 @@ static void UserAppSM_Idle(void)
     au8DisplayCost[0]=Price[LEDColourIndex%6]/10+48;
     au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
     LCDMessage(LINE2_START_ADDR+15, au8DisplayCost);
-
+    
   } 
   /*if press button0,then start to inc LCDColourIndex*/
   if( WasButtonPressed(BUTTON0) )
@@ -364,17 +397,24 @@ static void UserAppSM_Idle(void)
     au8DisplayCost2[3]=Total%10+48;
     LCDClearChars(LINE2_START_ADDR,20);
     LCDMessage(LINE2_START_ADDR+10, au8DisplayCost2);
+    LCDMessage(LINE2_START_ADDR+14,"$");
     UserApp_StateMachine = UserAppSM_Buzzer;
   }
-
 } /* end UserAppSM_Idle() */
      
 
 static void UserAppSM_Buzzer(void)          /* music */
 {
+  static u8 i;
   static bool flag1=FALSE;
   static u8 u8TimeStamp=500;
   static u8 u8MusicNote=0;
+  //static u8 au8TestMessage[] = {0x21, 0x48, 0x76, 0x52, 0xA5, 0, 0, 0};
+  static u8 Index=0;
+  static bool flag2=TRUE;
+  static u8 OrderMenus1[16];
+  static char OrderMenus2[16];
+  u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
   char MusicScore[]="022333055550022333005555055666031222220022333055550022333005555055666031222220006677AAAA77AAA00677AAAA77AAA00367AAAA7ACCCCBBAA777700336677AAAA77AAAA6677AA777765321111001666556633331133222200336677AAAA77AAAAA6677AA77776532111100166554433332211222205544332333111110";
   u8TimeStamp--;
   if(u8TimeStamp==0 && MusicScore[u8MusicNote]!='\0')
@@ -523,6 +563,26 @@ static void UserAppSM_Buzzer(void)          /* music */
     LedOff(LCD_GREEN);
     LedOff(LCD_BLUE);
   }
+
+  if(WasButtonPressed(BUTTON1))
+  {
+    ButtonAcknowledge(BUTTON1);
+    for(i=0;i<8;i++)
+    {
+      DebugPrintNumber(OrderMenus1[i]);
+      DebugPrintf("   ");
+    }
+  }
+  if(WasButtonPressed(BUTTON3))
+  {
+    ButtonAcknowledge(BUTTON3);
+    for(i=8;i<16;i++)
+    {
+      DebugPrintNumber(OrderMenus1[i]);
+      DebugPrintf("   ");
+    }
+  }
+  
   if(IsButtonHeld(BUTTON2, 1000))             /*if press button3 1s,then music off*/
   {
     flag=TRUE;
@@ -540,6 +600,32 @@ static void UserAppSM_Buzzer(void)          /* music */
     PWMAudioOff(BUZZER1);
     UserApp_StateMachine = UserAppInitialize;
   }
+  if(flag2)
+  {
+    OrderMenus1[Index]=OrderMenus[Index*4+0]*8+OrderMenus[Index*4+1]*4+OrderMenus[Index*4+2]*2+OrderMenus[Index*4+3];
+    
+    if((OrderMenus1[Index]>0 | OrderMenus1[Index]==0)&(OrderMenus1[Index]<9 | OrderMenus1[Index]==9))
+    {
+      OrderMenus2[Index]=OrderMenus1[Index]+48;
+      //au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
+    }
+    if(OrderMenus1[Index]>9 & (OrderMenus1[Index]<15 | OrderMenus1[Index]==15))
+    {
+      OrderMenus2[Index]=OrderMenus1[Index]+55;
+    }
+    Index++;
+    if(Index==16)
+    {
+      flag2=FALSE;
+    }
+  }
+  if( AntReadData() )
+  {
+    if(G_eAntApiCurrentMessageClass == ANT_TICK)
+    {
+      AntQueueBroadcastMessage(OrderMenus1);
+    }
+  } /* end AntReadData() */
 } /* end UserAppSM_Buzzer() */
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
