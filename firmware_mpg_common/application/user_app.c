@@ -64,16 +64,16 @@ extern volatile u32 G_u32SystemTime1s;                 /* From board-specific so
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "UserApp_" and be declared as static.
 ***********************************************************************************************************************/
+static u32 UserApp_u32DataMsgCount = 0;             /* Counts the number of ANT_DATA packets received */
+static u32 UserApp_u32TickMsgCount = 0;             /* Counts the number of ANT_TICK packets received */
+
 static fnCode_type UserApp_StateMachine;            /* The state machine function pointer */
 static u32 UserApp_u32Timeout;                      /* Timeout counter used across states */
 
-static bool flag=TRUE;
-static u8 i=0;
-static u8 OrderMenus[48]={0};
-static u16 Total=0;
-static u8 Index=0;
-static u8 Index1=0;
-static u8 OrderMenus1[12];
+static u8 UserApp_aau8SavedMessages[100][8];
+static u16 UserApp_u16SavedMessageCounter = 0;
+
+
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -100,15 +100,33 @@ Promises:
   - 
 */
 void UserAppInitialize(void)
-{  
-  LedOn(LCD_BLUE);
-  LedOff(LCD_GREEN);
-  LedOn(LCD_RED);
-  u8 au8WelcomeMessage[]="Welcome to Delicious";
-  LCDCommand(LCD_CLEAR_CMD);
-  LCDMessage(LINE1_START_ADDR,au8WelcomeMessage);
+{
+  u8 au8WelcomeMessage[] = "ANT SLAVE DEMO";
+  u8 au8Instructions[] = "B0 toggles radio";
+  
+#if 0
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][0] = 'x';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][1] = 'i';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][2] = 'n';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][3] = 'y';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][4] = 'u';
 
-  /* Configure ANT for this application */
+  UserApp_u16SavedMessageCounter++;
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][0] = 'j';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][1] = 'a';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][2] = 's';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][3] = 'o';
+  UserApp_aau8SavedMessages[UserApp_u16SavedMessageCounter][4] = 'n';
+#endif
+  
+  
+  /* Clear screen and place start messages */
+  LCDCommand(LCD_CLEAR_CMD);
+  LCDMessage(LINE1_START_ADDR, au8WelcomeMessage); 
+  LCDMessage(LINE2_START_ADDR, au8Instructions); 
+  /* Start with LED0 in RED state = channel is not configured */
+  LedOn(RED); 
+ /* Configure ANT for this application */
   G_stAntSetupData.AntChannel          = ANT_CHANNEL_USERAPP;
   G_stAntSetupData.AntSerialLo         = ANT_SERIAL_LO_USERAPP;
   G_stAntSetupData.AntSerialHi         = ANT_SERIAL_HI_USERAPP;
@@ -118,17 +136,22 @@ void UserAppInitialize(void)
   G_stAntSetupData.AntChannelPeriodHi  = ANT_CHANNEL_PERIOD_HI_USERAPP;
   G_stAntSetupData.AntFrequency        = ANT_FREQUENCY_USERAPP;
   G_stAntSetupData.AntTxPower          = ANT_TX_POWER_USERAPP;
-
   
   /* If good initialization, set state to Idle */
-  if( AntChannelConfig(ANT_MASTER) )
+  if( AntChannelConfig(ANT_SLAVE) )
   {
+    /* Channel is configured, so change LED to yellow */
+    LedOff(RED);
+    LedOn(YELLOW);
+    
     UserApp_StateMachine = UserAppSM_Idle;
   }
   else
   {
     /* The task isn't properly initialized, so shut it down and don't run */
-    UserApp_StateMachine = UserAppSM_FailedInit;
+    LedBlink(RED, LED_4HZ);
+ 
+    UserApp_StateMachine = UserAppSM_Error;
   }
 
 } /* end UserAppInitialize() */
@@ -168,507 +191,199 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-  static u8 LEDColourIndex=5;
-  unsigned char NUM[6]={0,0,0,0,0,0};
-  static u8 LCDColourIndex=0;
-  static u8 au8DisplayCost2[5];
-  u8 au8Message1[] = "Yes            ";
-  u8 au8Message2[] = "No             ";
-  u8 au8Message3[]=" $ ";
-  static u16 u16BlinkCount = 0;        /*time counter 100ms*/
-  static u16 u16Counter = 1;           /*which light to bright*/
-  static u8 Led[]={WHITE,PURPLE,BLUE,CYAN,GREEN,YELLOW};
-  static u8 Price[]={30,48,22,20,12,15};
-  static u8 au8DisplayCost[3]; 
-  static u8 Button2Counter=0;
-
-  if(flag)
+  /* Look for BUTTON 0 to open channel */
+  if(WasButtonPressed(BUTTON0))
   {
-    u16BlinkCount++;                    /*time goes*/
-    if(u16BlinkCount == 100)             /*time to change the light*/
-    {
-      u16BlinkCount = 0; 
-    
-      /*clear the time counter*/
-      /* Update the counter and roll at 16 */
-      if(u16Counter == 256)                /*for light to come back*/
-      {
-        u16Counter = 1;
-      }
-      /*bright the lights in turn*/
-      if(u16Counter & 0x01)
-      {
-        LedOn(RED);
-      }
-      else
-      {
-        LedOff(RED);
-      }
-      if(u16Counter & 0x02)
-      {
-        LedOn(ORANGE);
-      }
-      else
-      {
-        LedOff(ORANGE);
-      }
-      if(u16Counter & 0x04)
-      {
-        LedOn(YELLOW);
-       }
-      else
-      {
-        LedOff(YELLOW);
-      }
-      if(u16Counter & 0x08)
-      {
-        LedOn(GREEN);
-      }
-      else
-      {
-        LedOff(GREEN);
-      }
-      if(u16Counter & 0x10)
-      {
-        LedOn( CYAN);
-      }
-      else
-      {
-        LedOff( CYAN);
-      }
-      if(u16Counter & 0x20)
-      {
-        LedOn(BLUE);
-      }
-      else
-      {
-        LedOff(BLUE);
-      }
-      if(u16Counter & 0x40)
-      {
-        LedOn(PURPLE);
-      }
-      else
-      {
-        LedOff(PURPLE);
-      }
-      if(u16Counter & 0x80)
-      {
-        LedOn(WHITE);
-      }
-      else
-      {
-        LedOff(WHITE);
-      }
-      u16Counter*=2;
-    }
-  }
- 
-    /*if press button3,then start to order*/
-  if(WasButtonPressed(BUTTON3))
-  {
-    flag=FALSE;
-    ButtonAcknowledge(BUTTON3);
-    LedOff(WHITE);
-    LedOff(PURPLE);
-    LedOff(BLUE);
-    LedOff(CYAN);
-    LedOff(GREEN);
-    LedOff(YELLOW);
-    LedOn(ORANGE);
-    LedOff(RED);
-    LedOn(LCD_RED);
-    LedOn(LCD_GREEN);
-    LedOn(LCD_BLUE);  
-    LEDColourIndex+=1;                 /*display the kinds of food*/
-    LedOn(Led[LEDColourIndex%6]);
-    LCDMessage(LINE2_START_ADDR+17, au8Message3);
-    LCDMessage(LINE2_START_ADDR, au8Message2);
-    Button2Counter=0;
-    au8DisplayCost[0]=Price[LEDColourIndex%6]/10+48;              /*display price*/
-    au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
-    LCDMessage(LINE2_START_ADDR+15, au8DisplayCost);
-  }
-  
-  if(WasButtonPressed(BUTTON2))    /*if press button2,then display No*/
-  {
-    ButtonAcknowledge(BUTTON2);
-    if(Button2Counter++%2==0)
-    {
-      NUM[LEDColourIndex%6]++;
-      LCDMessage(LINE2_START_ADDR, au8Message1);   /*if press button2 again,then display Yes*/
-      OrderMenus[8*(LEDColourIndex%6)+(LCDColourIndex%6)]=1;
-      /* price calculation */
-      for(u8 j=0;j<6;j++)
-      {
-        Total += Price[j]*NUM[j];
-      }
-    }
-    else
-    {
-      LCDMessage(LINE2_START_ADDR, au8Message2);
-    }
-  }    
-  
-  if(WasButtonPressed(BUTTON1))       /*if press button1,then move left to change */
-  {
-    ButtonAcknowledge(BUTTON1);
-    LedOff(WHITE);
-    LedOff(PURPLE);
-    LedOff(BLUE);
-    LedOff(CYAN);
-    LedOff(GREEN);
-    LedOff(YELLOW);
-    LedOn(ORANGE);
-    LedOff(RED);
-    LedOn(LCD_RED);
-    LedOn(LCD_GREEN);
-    LedOn(LCD_BLUE);
-    LEDColourIndex-=1;
-    LedOn(Led[LEDColourIndex%6]);
-    LCDMessage(LINE2_START_ADDR, au8Message2);
-    Button2Counter=0;
-    au8DisplayCost[0]=Price[LEDColourIndex%6]/10+48;
-    au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
-    LCDMessage(LINE2_START_ADDR+15, au8DisplayCost);
-    
-  } 
-  /*if press button0,then start to inc LCDColourIndex*/
-  if( WasButtonPressed(BUTTON0) )
-  {
-    /* Be sure to acknowledge the button press */
+    /* Got the button, so complete one-time actions before next state */
     ButtonAcknowledge(BUTTON0);
-    LCDColourIndex++;
-    LCDMessage(LINE2_START_ADDR, au8Message2);
-    Button2Counter=0;
-    switch(LCDColourIndex%7)                       /*start to change LCD*/         
-    {                                             
-      case 0: /* white */
-        LedOn(LCD_RED);
-        LedOn(LCD_GREEN);
-        LedOn(LCD_BLUE);
-        break;
-
-      case 1: /* purple */
-        LedOn(LCD_RED);
-        LedOff(LCD_GREEN);
-        LedOn(LCD_BLUE);
-        break;
-        
-      case 2: /* blue */
-        LedOff(LCD_RED);
-        LedOff(LCD_GREEN);
-        LedOn(LCD_BLUE);
-        break;
-        
-      case 3: /* cyan */
-        LedOff(LCD_RED);
-        LedOn(LCD_GREEN);
-        LedOn(LCD_BLUE);
-        break;
-        
-      case 4: /* green */
-        LedOff(LCD_RED);
-        LedOn(LCD_GREEN);
-        LedOff(LCD_BLUE);
-        break;
-        
-      case 5: /* yellow */
-        LedOn(LCD_RED);
-        LedOn(LCD_GREEN);
-        LedOff(LCD_BLUE);
-        break;
-        
-      case 6: /* red */
-        LedOn(LCD_RED);
-        LedOff(LCD_GREEN);
-        LedOff(LCD_BLUE);
-        break;
-
-    } /* end switch */
-  }
-  if(IsButtonHeld(BUTTON0,1000))    /*if press button0 1s,then music on*/
-  {
-    au8DisplayCost2[0]=Total/1000+48;              
-    au8DisplayCost2[1]=Total/100%10+48;
-    au8DisplayCost2[2]=Total/10%10+48;              /*display price*/
-    au8DisplayCost2[3]=Total%10+48;
-    LCDClearChars(LINE2_START_ADDR,20);
-    LCDMessage(LINE2_START_ADDR+10, au8DisplayCost2);
-    LCDMessage(LINE2_START_ADDR+14,"$");
-    
+    /* Queue open channel and change LED0 from yellow to blinking green to indicate channel is opening */
     AntOpenChannel();
-
-    UserApp_StateMachine = UserAppSM_Buzzer;
-  }
+    LedOff(YELLOW);
+    LedBlink(GREEN, LED_2HZ);
+    /* Set timer and advance states */
+    UserApp_u32Timeout = G_u32SystemTime1ms;
+    UserApp_StateMachine = UserAppSM_WaitChannelOpen;
+  }    
 } /* end UserAppSM_Idle() */
      
 
-static void UserAppSM_Buzzer(void)          /* music */
+/*-------------------------------------------------------------------------------------------------------------------*/
+/* Wait for channel to open */
+static void UserAppSM_WaitChannelOpen(void)
 {
-  static u8 i;
-  static bool flag1=FALSE;
-  static u8 u8TimeStamp=500;
-  static u8 u8MusicNote=0;
-  static char OrderMenus2[12];
-  u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
-  char MusicScore[]="022333055550022333005555055666031222220022333055550022333005555055666031222220006677AAAA77AAA00677AAAA77AAA00367AAAA7ACCCCBBAA777700336677AAAA77AAAA6677AA777765321111001666556633331133222200336677AAAA77AAAAA6677AA77776532111100166554433332211222205544332333111110";
-  
-  u8TimeStamp--;
-  if(u8TimeStamp==0 && MusicScore[u8MusicNote]!='\0')
+  /* Monitor the channel status to check if channel is opened */
+  if(AntRadioStatus() == ANT_OPEN)
   {
-    switch(MusicScore[u8MusicNote])
-    {
-      case '0':
-        PWMAudioOff(BUZZER1);
-        LedOn(WHITE);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(RED);
-        break;
-      case '1':
-        PWMAudioSetFrequency(BUZZER1, 523);
-        PWMAudioOn(BUZZER1);
-        LedOn(PURPLE);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(WHITE);
-        LedOff(BLUE);
-        LedOff(RED);
-        break;
-      case '2':
-        PWMAudioSetFrequency(BUZZER1, 587);
-        PWMAudioOn(BUZZER1);
-        LedOn(BLUE);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(WHITE);
-        LedOff(RED);
-        break;
-      case '3':
-        PWMAudioSetFrequency(BUZZER1, 659);
-        PWMAudioOn(BUZZER1);
-        LedOn(CYAN);
-        LedOff(WHITE);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(RED);
-        break;
-      case '4':
-        PWMAudioSetFrequency(BUZZER1, 698);
-        PWMAudioOn(BUZZER1);
-        LedOn(GREEN);
-        LedOff(CYAN);
-        LedOff(WHITE);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(RED);
-        break;
-      case '5':
-        PWMAudioSetFrequency(BUZZER1, 783);
-        PWMAudioOn(BUZZER1);
-        LedOn(YELLOW);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(WHITE);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(RED);
-        break;
-      case '6':
-        PWMAudioSetFrequency(BUZZER1, 880);
-        PWMAudioOn(BUZZER1);
-        LedOn(ORANGE);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(WHITE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(RED);
-        break;
-      case '7':
-        PWMAudioSetFrequency(BUZZER1, 987);
-        PWMAudioOn(BUZZER1);
-        LedOn(RED);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(WHITE);
-        break;
-      case 'A':
-        PWMAudioSetFrequency(BUZZER1, 1046);
-        PWMAudioOn(BUZZER1);
-        LedBlink(RED,LED_1HZ);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(WHITE);
-        break;
-      case 'B':
-        PWMAudioSetFrequency(BUZZER1, 1174);
-        PWMAudioOn(BUZZER1);
-        LedBlink(RED,LED_2HZ);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(WHITE);
-        break;
-      case 'C':
-        PWMAudioSetFrequency(BUZZER1, 1318);
-        PWMAudioOn(BUZZER1);
-        LedBlink(RED,LED_4HZ);
-        LedOff(CYAN);
-        LedOff(GREEN);
-        LedOff(YELLOW);
-        LedOff(ORANGE);
-        LedOff(PURPLE);
-        LedOff(BLUE);
-        LedOff(WHITE);
-        break;
-    }
-    u8MusicNote++;
+    LedOn(GREEN);
+    UserApp_StateMachine = UserAppSM_ChannelOpen;
   }
-  
-  if(Index<16)
+  /* Check for timeout */
+  if( IsTimeUp(&UserApp_u32Timeout, TIMEOUT_VALUE) )
   {
-    OrderMenus1[Index]=OrderMenus[Index*4+0]*8+OrderMenus[Index*4+1]*4+OrderMenus[Index*4+2]*2+OrderMenus[Index*4+3];
-    Index++;
-  }
-  
-  if(Index==16)
-  {
-    Index=0;
-  }
-  
-  if(WasButtonPressed(BUTTON0))       /* hurry up */
-  {
-    flag1=TRUE;
-    ButtonAcknowledge(BUTTON0);
-    LedOn(LCD_RED);
-    LedOff(LCD_GREEN);
-    LedOff(LCD_BLUE);
-  }
-  if(WasButtonPressed(BUTTON2))
-  {
-    ButtonAcknowledge(BUTTON2);
-    DebugPrintf("\n\rThe Message is there : \n\r");
-    for(i=0;i<8;i++)
-    {
-      DebugPrintNumber(OrderMenus1[i]);
-      DebugPrintf("   ");
-    }
-  }
-  if(WasButtonPressed(BUTTON3))
-  {
-    ButtonAcknowledge(BUTTON3);
-    for(i=8;i<12;i++)
-    {
-      DebugPrintf("   ");
-      DebugPrintNumber(OrderMenus1[i]); 
-    }
-  }
-  
-  if(IsButtonHeld(BUTTON1, 1000))             /*if press button1 1s,then music off*/
-  {
-    flag=TRUE;
-    LedOff(WHITE);
-    LedOff(PURPLE);
-    LedOff(BLUE);
-    LedOff(CYAN);
-    LedOff(GREEN);
-    LedOff(YELLOW);
-    LedOff(ORANGE);
-    LedOff(RED);
-    LedOn(LCD_RED);
-    LedOn(LCD_GREEN);
-    LedOn(LCD_BLUE);
-    PWMAudioOff(BUZZER1);
-    Total=0;
- 
-#if 0
-    if(Index1<48)
-    {
-      OrderMenus[Index1]=0;
-      Index1++;
-    }
-    if(Index1==48)
-    {
-      Index1=0;
-    }
-#endif
-    
-    for(Index1=0;Index1<48;Index1++)
-    {
-      OrderMenus[Index1]=0;
-    }
-    AntQueueBroadcastMessage(OrderMenus);
     AntCloseChannel();
-
+    LedOff(GREEN);
+    LedOn(YELLOW);
     UserApp_StateMachine = UserAppSM_Idle;
-  }
+  }   
+} /* end UserAppSM_WaitChannelOpen() */
+
+/*-------------------------------------------------------------------------------------------------------------------*/
+/* Channel is open, so monitor data */
+static void UserAppSM_ChannelOpen(void)
+{
+  static u8 u8LastState = 0xff;
+  static u8 au8TickMessage[] = "EVENT x\n\r";  /* "x" at index [6] will be replaced by the current code */
+  static u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
+  static u8 au8LastAntData[ANT_APPLICATION_MESSAGE_BYTES] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  static u8 au8TestMessage[] = {0, 0, 0, 0, 0xA5, 0, 0, 0};
+  static u8 k=0;
+  bool bGotNewData;
+
+  /* Check for BUTTON0 to close channel */
+  if(WasButtonPressed(BUTTON1))
+  {
+    /* Got the button, so complete one-time actions before next state */
+    ButtonAcknowledge(BUTTON1);  
+    /* Queue close channel and change LED to blinking green to indicate channel is closing */
+    AntCloseChannel();
+    u8LastState = 0xff;
+    LedOff(YELLOW);
+    LedOff(BLUE);
+    LedBlink(GREEN, LED_2HZ);
+    /* Set timer and advance states */
+    UserApp_u32Timeout = G_u32SystemTime1ms;
+    UserApp_StateMachine = UserAppSM_WaitChannelClose;
+  } /* end if(WasButtonPressed(BUTTON1)) */
   
-  
-    if((OrderMenus1[Index]>0 | OrderMenus1[Index]==0)&(OrderMenus1[Index]<9 | OrderMenus1[Index]==9))
-    {
-      OrderMenus2[Index]=OrderMenus1[Index]+48;
-      //au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
-    }
-    if(OrderMenus1[Index]>9 & (OrderMenus1[Index]<15 | OrderMenus1[Index]==15))
-    {
-      OrderMenus2[Index]=OrderMenus1[Index]+55;
-    }
-    
- 
+  /* Always check for ANT messages */
   if( AntReadData() )
   {
-    if(G_eAntApiCurrentMessageClass == ANT_TICK)
+     /* New data message: check what it is */
+    if(G_eAntApiCurrentMessageClass == ANT_DATA)
     {
+      UserApp_u32DataMsgCount++;
+      static u8 i=0;
+      /* Check if the new data is the same as the old data and update as we go */
+      bGotNewData = FALSE;
       
-      AntQueueBroadcastMessage(OrderMenus2);
-    }
+      for(u8 j = 0; j < 16; j++)
+      {
+        if(G_au8AntApiCurrentData[j] != au8LastAntData[j])
+        {
+          bGotNewData = TRUE;
+          au8LastAntData[j] = G_au8AntApiCurrentData[j];
+          au8DataContent[2 * j] = HexToASCIICharUpper(G_au8AntApiCurrentData[j] / 16);
+          au8DataContent[2 * j + 1] = HexToASCIICharUpper(G_au8AntApiCurrentData[j] % 16);   
+        }
+     }      
+      
+      if(bGotNewData)
+      {
+        /* We got new data: show on LCD */
+        k++;
+        LCDClearChars(LINE2_START_ADDR, 20); 
+        LCDMessage(LINE2_START_ADDR, G_au8AntApiCurrentData); 
+        for(u8 l=0;l<8;l++)
+        {
+          UserApp_aau8SavedMessages[k][l]=G_au8AntApiCurrentData[l];
+        }
+        
+        
+        /* Update our local message counter and send the message back */
+        AntQueueBroadcastMessage(au8TestMessage); 
+      
+      } /* end if(bGotNewData) */  
+    } /* end if(G_eAntApiCurrentMessageClass == ANT_DATA) */
+    else if(G_eAntApiCurrentMessageClass == ANT_TICK)
+    {
+      UserApp_u32TickMsgCount++;
+      /* Look at the TICK contents to check the event code and respond only if it's different */
+      if(u8LastState != G_au8AntApiCurrentData[ANT_TICK_MSG_EVENT_CODE_INDEX])
+      {
+        /* The state changed so update u8LastState and queue a debug message */
+        u8LastState = G_au8AntApiCurrentData[ANT_TICK_MSG_EVENT_CODE_INDEX];
+        au8TickMessage[6] = HexToASCIICharUpper(u8LastState);
+        DebugPrintf(au8TickMessage);
+
+        /* Parse u8LastState to update LED status */
+        switch (u8LastState)
+        {
+          /* If we are synced with a device, blue is solid */
+          case RESPONSE_NO_ERROR:
+          {
+            LedOff(GREEN);
+            LedOn(BLUE);
+            break;
+          }
+          /* If we are paired but missing messages, blue blinks */
+          case EVENT_RX_FAIL:
+          {
+            LedOff(GREEN);
+            LedBlink(BLUE, LED_2HZ);
+            break;
+          }
+          /* If we drop to search, LED is green */
+          case EVENT_RX_FAIL_GO_TO_SEARCH:
+          {
+            LedOff(BLUE);
+            LedOn(GREEN);
+            break;
+          }
+          /* If the search times out, the channel should automatically close */
+          case EVENT_RX_SEARCH_TIMEOUT:
+          {
+            DebugPrintf("Search timeout\r\n");
+            break;
+          }
+
+          default:
+          {
+            DebugPrintf("Unexpected Event\r\n");
+            break;
+          }
+        } /* end switch (G_au8AntApiCurrentData) */
+      } /* end if (u8LastState != G_au8AntApiCurrentData[ANT_TICK_MSG_EVENT_CODE_INDEX]) */
+    } /* end else if(G_eAntApiCurrentMessageClass == ANT_TICK) */   
   } /* end AntReadData() */
-} /* end UserAppSM_Buzzer() */
+  
+  /* A slave channel can close on its own, so explicitly check channel status */
+  if(AntRadioStatus() != ANT_OPEN)
+  {
+    LedBlink(GREEN, LED_2HZ);
+    LedOff(BLUE);
+    u8LastState = 0xff;
+    UserApp_u32Timeout = G_u32SystemTime1ms;
+    UserApp_StateMachine = UserAppSM_WaitChannelClose;
+  } /* if(AntRadioStatus() != ANT_OPEN) */     
+} /* end UserAppSM_ChannelOpen() */
+
+/*-------------------------------------------------------------------------------------------------------------------*/
+/* Wait for channel to close */
+static void UserAppSM_WaitChannelClose(void)
+{
+  /* Monitor the channel status to check if channel is closed */
+  if(AntRadioStatus() == ANT_CLOSED)
+  {
+    LedOff(GREEN);
+    LedOn(YELLOW);
+    UserApp_StateMachine = UserAppSM_Idle;
+  } 
+  /* Check for timeout */
+  if( IsTimeUp(&UserApp_u32Timeout, TIMEOUT_VALUE) )
+  {
+    LedOff(GREEN);
+    LedOff(YELLOW);
+    LedBlink(RED, LED_4HZ);
+    UserApp_StateMachine = UserAppSM_Error;
+  }  
+} /* end UserAppSM_WaitChannelClose() */
 
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
 static void UserAppSM_Error(void)          
 {
-  
+
 } /* end UserAppSM_Error() */
-
-
-/*-------------------------------------------------------------------------------------------------------------------*/
-/* State to sit in if init failed */
-static void UserAppSM_FailedInit(void)          
-{
-    
-} /* end UserAppSM_FailedInit() */
-
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* End of File                                                                                                        */
