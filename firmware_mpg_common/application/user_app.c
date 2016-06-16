@@ -70,6 +70,10 @@ static u32 UserApp_u32Timeout;                      /* Timeout counter used acro
 static bool flag=TRUE;
 static u8 i=0;
 static u8 OrderMenus[48]={0};
+static u16 Total=0;
+static u8 Index=0;
+static u8 Index1=0;
+static u8 OrderMenus1[12];
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
@@ -96,14 +100,14 @@ Promises:
   - 
 */
 void UserAppInitialize(void)
-{
+{  
   LedOn(LCD_BLUE);
   LedOff(LCD_GREEN);
   LedOn(LCD_RED);
   u8 au8WelcomeMessage[]="Welcome to Delicious";
   LCDCommand(LCD_CLEAR_CMD);
   LCDMessage(LINE1_START_ADDR,au8WelcomeMessage);
-  
+
   /* Configure ANT for this application */
   G_stAntSetupData.AntChannel          = ANT_CHANNEL_USERAPP;
   G_stAntSetupData.AntSerialLo         = ANT_SERIAL_LO_USERAPP;
@@ -118,18 +122,6 @@ void UserAppInitialize(void)
   
   /* If good initialization, set state to Idle */
   if( AntChannelConfig(ANT_MASTER) )
-  {
-    AntOpenChannel();
-    UserApp_StateMachine = UserAppSM_Buzzer;
-  }
-  else
-  {
-    /* The task isn't properly initialized, so shut it down and don't run */
-    UserApp_StateMachine = UserAppSM_FailedInit;
-  }
-
-  /* If good initialization, set state to Idle */
-  if( 1 )
   {
     UserApp_StateMachine = UserAppSM_Idle;
   }
@@ -176,10 +168,10 @@ State Machine Function Definitions
 /* Wait for a message to be queued */
 static void UserAppSM_Idle(void)
 {
-  static u8 LCDColourIndex=0;
-  static u16 Total=0;
-  static u8 au8DisplayCost2[5];
+  static u8 LEDColourIndex=5;
   unsigned char NUM[6]={0,0,0,0,0,0};
+  static u8 LCDColourIndex=0;
+  static u8 au8DisplayCost2[5];
   u8 au8Message1[] = "Yes            ";
   u8 au8Message2[] = "No             ";
   u8 au8Message3[]=" $ ";
@@ -188,14 +180,16 @@ static void UserAppSM_Idle(void)
   static u8 Led[]={WHITE,PURPLE,BLUE,CYAN,GREEN,YELLOW};
   static u8 Price[]={30,48,22,20,12,15};
   static u8 au8DisplayCost[3]; 
-  static u8 LEDColourIndex=5;
   static u8 Button2Counter=0;
+
   if(flag)
   {
     u16BlinkCount++;                    /*time goes*/
     if(u16BlinkCount == 100)             /*time to change the light*/
     {
-      u16BlinkCount = 0;               /*clear the time counter*/
+      u16BlinkCount = 0; 
+    
+      /*clear the time counter*/
       /* Update the counter and roll at 16 */
       if(u16Counter == 256)                /*for light to come back*/
       {
@@ -269,6 +263,7 @@ static void UserAppSM_Idle(void)
       u16Counter*=2;
     }
   }
+ 
     /*if press button3,then start to order*/
   if(WasButtonPressed(BUTTON3))
   {
@@ -294,6 +289,7 @@ static void UserAppSM_Idle(void)
     au8DisplayCost[1]=Price[LEDColourIndex%6]%10+48;
     LCDMessage(LINE2_START_ADDR+15, au8DisplayCost);
   }
+  
   if(WasButtonPressed(BUTTON2))    /*if press button2,then display No*/
   {
     ButtonAcknowledge(BUTTON2);
@@ -302,16 +298,18 @@ static void UserAppSM_Idle(void)
       NUM[LEDColourIndex%6]++;
       LCDMessage(LINE2_START_ADDR, au8Message1);   /*if press button2 again,then display Yes*/
       OrderMenus[8*(LEDColourIndex%6)+(LCDColourIndex%6)]=1;
+      /* price calculation */
+      for(u8 j=0;j<6;j++)
+      {
+        Total += Price[j]*NUM[j];
+      }
     }
     else
     {
       LCDMessage(LINE2_START_ADDR, au8Message2);
     }
-  }    /* price calculation */
-  for(u8 j=0;j<6;j++)
-  {
-    Total += Price[j]*NUM[j];
-  }
+  }    
+  
   if(WasButtonPressed(BUTTON1))       /*if press button1,then move left to change */
   {
     ButtonAcknowledge(BUTTON1);
@@ -389,7 +387,7 @@ static void UserAppSM_Idle(void)
 
     } /* end switch */
   }
-  if(IsButtonHeld(BUTTON3,1000))    /*if press button3 1s,then music on*/
+  if(IsButtonHeld(BUTTON0,1000))    /*if press button0 1s,then music on*/
   {
     au8DisplayCost2[0]=Total/1000+48;              
     au8DisplayCost2[1]=Total/100%10+48;
@@ -398,6 +396,9 @@ static void UserAppSM_Idle(void)
     LCDClearChars(LINE2_START_ADDR,20);
     LCDMessage(LINE2_START_ADDR+10, au8DisplayCost2);
     LCDMessage(LINE2_START_ADDR+14,"$");
+    
+    AntOpenChannel();
+
     UserApp_StateMachine = UserAppSM_Buzzer;
   }
 } /* end UserAppSM_Idle() */
@@ -409,13 +410,10 @@ static void UserAppSM_Buzzer(void)          /* music */
   static bool flag1=FALSE;
   static u8 u8TimeStamp=500;
   static u8 u8MusicNote=0;
-  //static u8 au8TestMessage[] = {0x21, 0x48, 0x76, 0x52, 0xA5, 0, 0, 0};
-  static u8 Index=0;
-  static bool flag2=TRUE;
-  static u8 OrderMenus1[16];
-  static char OrderMenus2[16];
+  static char OrderMenus2[12];
   u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
   char MusicScore[]="022333055550022333005555055666031222220022333055550022333005555055666031222220006677AAAA77AAA00677AAAA77AAA00367AAAA7ACCCCBBAA777700336677AAAA77AAAA6677AA777765321111001666556633331133222200336677AAAA77AAAAA6677AA77776532111100166554433332211222205544332333111110";
+  
   u8TimeStamp--;
   if(u8TimeStamp==0 && MusicScore[u8MusicNote]!='\0')
   {
@@ -555,6 +553,18 @@ static void UserAppSM_Buzzer(void)          /* music */
     }
     u8MusicNote++;
   }
+  
+  if(Index<16)
+  {
+    OrderMenus1[Index]=OrderMenus[Index*4+0]*8+OrderMenus[Index*4+1]*4+OrderMenus[Index*4+2]*2+OrderMenus[Index*4+3];
+    Index++;
+  }
+  
+  if(Index==16)
+  {
+    Index=0;
+  }
+  
   if(WasButtonPressed(BUTTON0))       /* hurry up */
   {
     flag1=TRUE;
@@ -563,10 +573,10 @@ static void UserAppSM_Buzzer(void)          /* music */
     LedOff(LCD_GREEN);
     LedOff(LCD_BLUE);
   }
-
-  if(WasButtonPressed(BUTTON1))
+  if(WasButtonPressed(BUTTON2))
   {
-    ButtonAcknowledge(BUTTON1);
+    ButtonAcknowledge(BUTTON2);
+    DebugPrintf("\n\rThe Message is there : \n\r");
     for(i=0;i<8;i++)
     {
       DebugPrintNumber(OrderMenus1[i]);
@@ -576,14 +586,14 @@ static void UserAppSM_Buzzer(void)          /* music */
   if(WasButtonPressed(BUTTON3))
   {
     ButtonAcknowledge(BUTTON3);
-    for(i=8;i<16;i++)
+    for(i=8;i<12;i++)
     {
-      DebugPrintNumber(OrderMenus1[i]);
       DebugPrintf("   ");
+      DebugPrintNumber(OrderMenus1[i]); 
     }
   }
   
-  if(IsButtonHeld(BUTTON2, 1000))             /*if press button3 1s,then music off*/
+  if(IsButtonHeld(BUTTON1, 1000))             /*if press button1 1s,then music off*/
   {
     flag=TRUE;
     LedOff(WHITE);
@@ -598,12 +608,31 @@ static void UserAppSM_Buzzer(void)          /* music */
     LedOn(LCD_GREEN);
     LedOn(LCD_BLUE);
     PWMAudioOff(BUZZER1);
-    UserApp_StateMachine = UserAppInitialize;
-  }
-  if(flag2)
-  {
-    OrderMenus1[Index]=OrderMenus[Index*4+0]*8+OrderMenus[Index*4+1]*4+OrderMenus[Index*4+2]*2+OrderMenus[Index*4+3];
+    Total=0;
+ 
+#if 0
+    if(Index1<48)
+    {
+      OrderMenus[Index1]=0;
+      Index1++;
+    }
+    if(Index1==48)
+    {
+      Index1=0;
+    }
+#endif
     
+    for(Index1=0;Index1<48;Index1++)
+    {
+      OrderMenus[Index1]=0;
+    }
+    AntQueueBroadcastMessage(OrderMenus);
+    AntCloseChannel();
+
+    UserApp_StateMachine = UserAppSM_Idle;
+  }
+  
+  
     if((OrderMenus1[Index]>0 | OrderMenus1[Index]==0)&(OrderMenus1[Index]<9 | OrderMenus1[Index]==9))
     {
       OrderMenus2[Index]=OrderMenus1[Index]+48;
@@ -613,20 +642,18 @@ static void UserAppSM_Buzzer(void)          /* music */
     {
       OrderMenus2[Index]=OrderMenus1[Index]+55;
     }
-    Index++;
-    if(Index==16)
-    {
-      flag2=FALSE;
-    }
-  }
+    
+ 
   if( AntReadData() )
   {
     if(G_eAntApiCurrentMessageClass == ANT_TICK)
     {
-      AntQueueBroadcastMessage(OrderMenus1);
+      
+      AntQueueBroadcastMessage(OrderMenus2);
     }
   } /* end AntReadData() */
 } /* end UserAppSM_Buzzer() */
+
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
 static void UserAppSM_Error(void)          
